@@ -1,0 +1,19 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/demos/ServiceHelper/obj
+/.vs
+/demos/.vs
+/demos/SpeechChat/bin/Debug/net7.0
+/demos/SpeechChat/obj
+/demos/TextChat/bin/Debug/net7.0
+/demos/TextChat/obj
+/demos/ServiceHelper/bin/Debug/net7.0
+/samples/dotnet/.vs
+/samples/dotnet/ServiceHelper/bin/Debug/net7.0
+/samples/dotnet/ServiceHelper/obj
+/samples/dotnet/SpeechChat/bin/Debug/net7.0
+/samples/dotnet/SpeechChat/obj
+/samples/dotnet/TextChat/bin/Debug/net7.0
+/samples/dotnet/TextChat/obj
