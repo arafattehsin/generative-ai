@@ -6,7 +6,7 @@ This repository is a collection of notebooks and samples for Generative AI. It i
 
 ## Getting Started
 
-To get started, please check out the [notebooks](notebooks) and samples (coming soon) folders.
+To get started, please check out the [notebooks](notebooks) and [samples](samples) folders.
 
 ## Contributing
 
