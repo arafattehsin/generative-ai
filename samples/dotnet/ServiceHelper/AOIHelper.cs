@@ -11,8 +11,8 @@ public class AOIHelper
 
     public AOIHelper()
     {
-        this.endpoint = GetEnvironmentVariable("OPEN_AI_ENDPOINT");
-        this.key = GetEnvironmentVariable("OPEN_AI_KEY");
+        this.endpoint = GetEnvironmentVariable("AZUREOPENAI_ENDPOINT");
+        this.key = GetEnvironmentVariable("AZUREOPENAI_KEY");
         this.client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
         this.chatCompletionsOptions = new ChatCompletionsOptions()
         {
