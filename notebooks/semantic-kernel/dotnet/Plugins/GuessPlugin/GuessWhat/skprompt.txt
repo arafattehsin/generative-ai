@@ -1,0 +1,2 @@
+Choose a landmark in a big city within {{$input}}. Remember that it has to be a famous which at least has a known landmark.
+The {{$input}} has to be known in terms of history, culture, and tourism. Give just one sentence about it.
