@@ -17,3 +17,4 @@
 /samples/dotnet/SpeechChat/obj
 /samples/dotnet/TextChat/bin/Debug/net7.0
 /samples/dotnet/TextChat/obj
+/notebooks/semantic-kernel/dotnet/settings.json

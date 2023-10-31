@@ -1,0 +1,5 @@
+Tell me a capital city of the country below.
+
+[COUNTRY]
+---------
+{{$input}}

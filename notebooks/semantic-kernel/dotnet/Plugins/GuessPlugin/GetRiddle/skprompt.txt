@@ -1,0 +1,10 @@
+Ask a riddle with its answer in a below json format.
+
+************************
+FORMAT
+************************
+{
+  "riddle": "",
+  "answer": ""
+}
+
