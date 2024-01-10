@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "type": "completion",
   "description": "Gets the riddle and its answer in a JSON format",
-  "completion": {
-    "max_tokens": 200,
-    "temperature": 0.8,
-    "top_p": 0,
-    "presence_penalty": 0.5,
-    "frequency_penalty": 0
-  },
-  "default_backends": []
+  "execution_settings": {
+    "default": {
+      "max_tokens": 200,
+      "temperature": 0.8,
+      "top_p": 0.0,
+      "presence_penalty": 0.0,
+      "frequency_penalty": 0.0
+    }
+  }
 }
