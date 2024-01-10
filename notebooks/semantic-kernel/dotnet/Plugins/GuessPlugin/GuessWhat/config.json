@@ -3,7 +3,7 @@
   "type": "completion",
   "description": "Guess what is the name of the place, landmark or a thing",
   "completion": {
-    "max_tokens": 100,
+    "max_tokens": 50,
     "temperature": 0,
     "top_p": 0,
     "presence_penalty": 0,
@@ -13,7 +13,7 @@
     "parameters": [
       {
         "name": "input",
-        "description": "Input for this semantic function.",
+        "description": "Name of a country.",
         "defaultValue": ""
       }
     ]
