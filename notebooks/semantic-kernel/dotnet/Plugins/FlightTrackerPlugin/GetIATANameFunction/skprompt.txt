@@ -1,0 +1,1 @@
+What's the IATA code of {{$input}}? Please provide just the code without any explanation. One word.
