@@ -18,3 +18,14 @@
 /samples/dotnet/TextChat/bin/Debug/net7.0
 /samples/dotnet/TextChat/obj
 /notebooks/semantic-kernel/dotnet/settings.json
+/samples/dotnet/openai-multimodal-chat/ServiceHelper/bin/Debug/net7.0
+/samples/dotnet/openai-multimodal-chat/ServiceHelper/obj
+/samples/dotnet/openai-multimodal-chat/SpeechChat/bin/Debug/net7.0
+/samples/dotnet/openai-multimodal-chat/SpeechChat/obj
+/samples/dotnet/openai-multimodal-chat/TextChat/bin/Debug/net7.0
+/samples/dotnet/openai-multimodal-chat/TextChat/obj
+/samples/dotnet/CustomCopilot/.vs/CustomCopilot/DesignTimeBuild
+/samples/dotnet/CustomCopilot/.vs
+/samples/dotnet/CustomCopilot/bin/Debug/net8.0
+/samples/dotnet/CustomCopilot/obj
+/samples/dotnet/openai-multimodal-chat/.vs/AOI-Demo/FileContentIndex
