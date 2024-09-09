@@ -29,3 +29,7 @@
 /samples/dotnet/CustomCopilot/bin/Debug/net8.0
 /samples/dotnet/CustomCopilot/obj
 /samples/dotnet/openai-multimodal-chat/.vs/AOI-Demo/FileContentIndex
+/samples/dotnet/openai-multimodal-chat/.vs
+/samples/dotnet/local-rag-sk/.vs
+/samples/dotnet/local-rag-sk/bin/Debug/net8.0
+/samples/dotnet/local-rag-sk/obj
