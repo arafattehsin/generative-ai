@@ -3,7 +3,7 @@
 
 This sample demonstrates how to use local Phi-3 ONNX variant with Semantic Kernel and Kernel Memory, all in .NET. This covers text completion and embeddings. 
 
-For a detailed blog post, read [here](https://arafattehsin.com/ai-copilot-offline-phi3-semantic-kernel/) & here.
+For a detailed blog post, read [here](https://arafattehsin.com/ai-copilot-offline-phi3-semantic-kernel/) & [here](https://arafattehsin.com/give-local-memories-to-your-local-ai-agents/).
 
 ## Features
 
@@ -35,11 +35,13 @@ This project demonstrates the use of Microsoft Semantic Kernel and ONNX models f
 
 2.  **Run the Application**
 
-		`dotnet build`
-		`dotnet run`
+    ```sh
+    dotnet build
+    dotnetrun
+    ```
     
     
-3.  **Interact with the Console**
+4.  **Interact with the Console**
     
     Once the application is running, you'll be presented with a command-line interface where you can enter queries. The system will generate a response using the Phi-3 model, incorporating information stored in its memory.
        
