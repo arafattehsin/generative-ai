@@ -11,10 +11,10 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.KernelMemory.SemanticKernel;
-using Microsoft.KernelMemory.AI.OpenAI;
+using Microsoft.KernelMemory.AI;
 
 // Your PHI-3 model location 
-var phi3modelPath = @"D:\models\Phi-3-mini-4k-instruct-onnx\cpu_and_mobile\cpu-int4-rtn-block-32";
+var phi3modelPath = @"D:\models\Phi-3.5-mini-instruct-onnx\cpu_and_mobile\cpu-int4-awq-block-128-acc-level-4";
 var bgeModelPath = @"D:\models\bge-micro-v2\onnx\model.onnx";
 var vocabPath = @"D:\models\bge-micro-v2\vocab.txt";
 
@@ -32,8 +32,8 @@ var embeddingGenerator = kernel.GetRequiredService<ITextEmbeddingGenerationServi
 
 var config = new SemanticKernelConfig(); ;
 var memory = new KernelMemoryBuilder()
-    .WithSemanticKernelTextGenerationService(new OnnxRuntimeGenAITextCompletionService("phi-3", phi3modelPath), config, new GPT4Tokenizer())
-    .WithSemanticKernelTextEmbeddingGenerationService(embeddingGenerator, config, new GPT4Tokenizer())
+    .WithSemanticKernelTextGenerationService(new OnnxRuntimeGenAITextCompletionService("phi-3", phi3modelPath), config, new DefaultGPTTokenizer())
+    .WithSemanticKernelTextEmbeddingGenerationService(embeddingGenerator, config, new DefaultGPTTokenizer())
     .WithSimpleVectorDb()
     .Build<MemoryServerless>();
 
