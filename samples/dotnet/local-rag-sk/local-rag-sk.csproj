@@ -19,11 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.71.240820.1" />
-    <PackageReference Include="Microsoft.KernelMemory.SemanticKernelPlugin" Version="0.71.240820.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.18.2" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Onnx" Version="1.18.2-alpha" />
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.18.2-alpha" />
+    <PackageReference Include="Microsoft.KernelMemory.AI.Onnx" Version="0.90.241021.1" />
+    <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.90.241021.1" />
+    <PackageReference Include="Microsoft.KernelMemory.SemanticKernelPlugin" Version="0.90.241021.1" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.24.1" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Onnx" Version="1.24.1-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.24.1-alpha" />
   </ItemGroup>
 
 </Project>
