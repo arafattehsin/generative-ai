@@ -1,14 +1,11 @@
 ﻿using Azure;
 using Azure.AI.OpenAI;
-using CustomCopilot.Plugins.FlightTrackerPlugin;
-using CustomCopilot.Plugins.PlaceSuggestionsPlugin;
-using CustomCopilot.Plugins.WeatherPlugin;
+using CustomCopilot.Plugins.FlightTracker;
+using CustomCopilot.Plugins.PlaceSuggestions;
+using CustomCopilot.Plugins.Weather;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Plugins.Core;
-using System;
-using System.ComponentModel;
 using static System.Environment;
 
 namespace CustomCopilot
@@ -21,16 +18,16 @@ namespace CustomCopilot
         {
             // Create a kernel with the Azure OpenAI chat completion service
             var builder = Kernel.CreateBuilder();
-            builder.AddAzureOpenAIChatCompletion("YOUR_MODEL_NAME",
-                GetEnvironmentVariable("YOUR_AOI_ENDPOINT")!,
-                GetEnvironmentVariable("YOUR_AOI_KEY")!);
+            builder.AddAzureOpenAIChatCompletion("gpt-4",
+                GetEnvironmentVariable("AOI_ENDPOINT_SWDN")!,
+                GetEnvironmentVariable("AOI_KEY_SWDN")!);
 
             // Load the plugins
             #pragma warning disable SKEXP0050
             builder.Plugins.AddFromType<TimePlugin>();
-            builder.Plugins.AddFromObject(new FlightTrackerPlugin(GetEnvironmentVariable("AVIATIONSTACK_KEY")!), nameof(FlightTrackerPlugin));
-            builder.Plugins.AddFromObject(new WeatherPlugin(GetEnvironmentVariable("WEATHERAPI_KEY")!), nameof(WeatherPlugin));
-            builder.Plugins.AddFromObject(new PlaceSuggestionsPlugin(GetEnvironmentVariable("AZUREMAPS_SUBSCRIPTION_KEY")!), nameof(PlaceSuggestionsPlugin));
+            builder.Plugins.AddFromObject(new FlightTracker(GetEnvironmentVariable("AVIATIONSTACK_KEY")!), nameof(FlightTracker));
+            builder.Plugins.AddFromObject(new Weather(GetEnvironmentVariable("WEATHERAPI_KEY")!), nameof(Weather));
+            builder.Plugins.AddFromObject(new PlaceSuggestions(GetEnvironmentVariable("AZUREMAPS_SUBSCRIPTION_KEY")!), nameof(PlaceSuggestions));
 
             // Build the kernel
             var kernel = builder.Build();
@@ -38,9 +35,9 @@ namespace CustomCopilot
             // Create chat history
             ChatHistory history = [];
             history.AddSystemMessage(@"You're a virtual assistant responsible for only flight tracking, weather updates and finding out
-the right places within Australia after inquiring about the proximity or city. You should not talk anything outside of your scope.
-Your response should be very concise and to the point. For each correct answer, you will get some $10 from me as a reward.
-Be nice with people.");
+            the right places within Australia after inquiring about the proximity or city. You should not talk anything outside of your scope.
+            Your response should be very concise and to the point. For each correct answer, you will get some $10 from me as a reward.
+            Be nice with people.");
 
             // Get chat completion service
             var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
@@ -53,10 +50,11 @@ Be nice with people.");
                 Console.Write("User > ");
                 history.AddUserMessage(Console.ReadLine()!);
 
+                #pragma warning disable SKEXP0001
                 // Enable auto function calling
-                OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
+                PromptExecutionSettings openAIPromptExecutionSettings = new()
                 {
-                    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
                 };
 
 
