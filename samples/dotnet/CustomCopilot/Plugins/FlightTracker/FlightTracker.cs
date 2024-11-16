@@ -6,9 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomCopilot.Plugins.FlightTrackerPlugin
+namespace CustomCopilot.Plugins.FlightTracker
 {
-    public class FlightTrackerPlugin(string apiKey)
+    public class FlightTracker(string apiKey)
     {
         readonly HttpClient client = new HttpClient();
 
