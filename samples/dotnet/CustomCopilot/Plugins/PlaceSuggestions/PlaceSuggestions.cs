@@ -9,15 +9,15 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel;
 
-namespace CustomCopilot.Plugins.PlaceSuggestionsPlugin
+namespace CustomCopilot.Plugins.PlaceSuggestions
 {
-    public class PlaceSuggestionsPlugin
+    public class PlaceSuggestions
     {
         MapsSearchClient client;
         HttpClient httpClient = new HttpClient();
         string APIKey;
 
-        public PlaceSuggestionsPlugin(string apiKey)
+        public PlaceSuggestions(string apiKey)
         {
             APIKey = apiKey;
             AzureKeyCredential credential = new(apiKey);
@@ -30,16 +30,16 @@ namespace CustomCopilot.Plugins.PlaceSuggestionsPlugin
         [Description("type of the place")] string placeType,
         [Description("name of the location")] string locationName)
         {
-            var searchResult = await client.SearchAddressAsync(locationName);
+            var searchResult = await client.GetGeocodingAsync(locationName);
 
-            if (searchResult?.Value?.Results.Count() == 0) { return null; }
+            if (searchResult?.Value.Features.Count() == 0) { return null; }
 
-            SearchAddressResultItem locationDetails = searchResult!.Value.Results[0];
+            FeaturesItem locationDetails = searchResult!.Value.Features.First();
 
             string url = @$"https://atlas.microsoft.com/search/fuzzy/json?api-version=1.0&query={placeType}
                     &subscription-key={APIKey}
-                    &lat={locationDetails.Position.Latitude}
-                    &lon={locationDetails.Position.Longitude}
+                    &lat={locationDetails.Geometry.Coordinates.Latitude}
+                    &lon={locationDetails.Geometry.Coordinates.Longitude}
                     &countrySet=AU
                     &language=en-AU";
 

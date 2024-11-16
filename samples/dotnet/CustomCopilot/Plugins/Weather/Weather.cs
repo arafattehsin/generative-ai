@@ -6,9 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomCopilot.Plugins.WeatherPlugin
+namespace CustomCopilot.Plugins.Weather
 {
-    public class WeatherPlugin(string apiKey)
+    public class Weather(string apiKey)
     {
         HttpClient client = new HttpClient();
 
