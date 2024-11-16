@@ -1,44 +1,48 @@
-# Semantic Kernel for Developers (C#)
+# Semantic Kernel Notebooks
 
-Get ready to unleash your inner AI wizard! This guide will take you on a journey from Prompt and Native functions to planners and connectors, and even includes Azure OpenAI's GPT-4 and DALL-E 3 models. Strap in, because we're about to turn up the natural language heat!
+This repository contains a collection of Polyglot Notebooks and supporting resources designed to help you explore and utilise [Semantic Kernel](https://github.com/microsoft/semantic-kernel), an open-source SDK by Microsoft that simplifies integrating Large Language Models (LLMs) such as OpenAI, Azure OpenAI and Hugging Face into applications.
+
+The `notebooks/semantic-kernel` folder focuses on demonstrating core capabilities of Semantic Kernel, including plugin orchestration, multi-model support and AI-powered task automation.
+
+## 📂 Folder Structure
+
+### `dotnet/`
+The `dotnet` folder contains Polyglot Notebooks showcasing how to use Semantic Kernel with .NET. These notebooks guide you through setting up Semantic Kernel, running AI functions and building intelligent applications.
+
+#### Key Notebooks:
+1. **Getting Started**: Learn how to configure and initialize Semantic Kernel with C#.
+2. **Prompt Execution**: Execute prompts stored in files and interact with LLMs seamlessly.
+3. **Dynamic Semantic Functions**: Create and manage Semantic Functions at runtime.
+4. **Advanced Interactions**:
+   - Implement chat experiences using Kernel Arguments.
+   - Integrate function calling to perform specific tasks.
+5. **Working with Vector Stores**: Explore embeddings and use vector databases.
+6. **Image Generation**: Create images with DALL-E 3.
+7. **Search Integration**: Use Bing Search via Kernel.
+
+### Common Configurations
+Ensure the following before running the notebooks:
+- **Set API Keys**: Add your OpenAI or Azure OpenAI API credentials to `config/settings.json`.
+- **Install Dependencies**:
+  - .NET 8 SDK
+  - Visual Studio Code with the [Polyglot extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode).
+
+## 🛠 Running the Notebooks
+
+### Visual Studio Code
+1. Open the repository folder in VS Code.
+2. Install the Polyglot Notebook extension.
+3. Open a notebook and execute the cells to setup Azure OpenAI / OpenAI credentials
+
+## 🌟 Why Semantic Kernel?
+Semantic Kernel is ideal for developers seeking:
+- **Flexibility**: Multi-language support (C#, Python, Java).
+- **Modularity**: Easy integration of custom plugins and models.
+- **Efficiency**: Simplified orchestration of AI-driven workflows.
+- **Scalability**: Enterprise-ready features with robust observability.
+
+For more details, visit the [official Semantic Kernel repository](https://github.com/microsoft/semantic-kernel).
 
 ---
 
-_Inspired by the great designers at the Microsoft OCTO (Semantic Kernel)_
-
-## Prerequisites
-
-To run this Polyglot notebook, ensure you have the following installed:
-
-- [Visual Studio Code](https://code.visualstudio.com/Download)
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download)
-- [Polyglot Notebooks for VS Code](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode)
-
-You'll also need an API key to access OpenAI models:
-
-- [Azure OpenAI Service](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/quickstart)
-
-   - Access your API key using [these instructions](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/reference).
-
-### Model Deployments
-
-Create the following deployments in your Azure OpenAI Service:
-
-- `gpt-4` - GPT-4
-- `dalle-3` - DALL-E 3
-- `text-embedding-002` - text-embedding-002
-
-Follow the [deployment guide](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/create-resource?pivots=web-portal) for instructions.
-
----
-
-## Getting Started
-
-1. **Open the Notebook**: Launch the notebook in Visual Studio Code.
-
-2. **Select the Kernel**: If prompted, select `.NET Interactive` as the kernel.
-
-3. **Run a Test Cell**: Click the play button (`▶️`) on the left of the following code block to ensure everything is set up correctly:
-
-   ```csharp
-   Console.WriteLine("Microphone test. Check one. Two. Three.");
+Let me know if you need further refinements or additional details!
