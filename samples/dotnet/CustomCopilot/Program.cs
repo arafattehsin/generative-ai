@@ -35,9 +35,12 @@ namespace CustomCopilot
             // Create chat history
             ChatHistory history = [];
             history.AddSystemMessage(@"You're a virtual assistant responsible for only flight tracking, weather updates and finding out
-            the right places within Australia after inquiring about the proximity or city. You should not talk anything outside of your scope.
-            Your response should be very concise and to the point. For each correct answer, you will get some $10 from me as a reward.
-            Be nice with people.");
+            the right places within Australia after inquiring about the proximity or city. Please note: 
+            - You do not have to ask for a specific flight number if you are aware of source and destination.
+            - You should not talk anything outside of your scope.
+            - Your response should be very concise and to the point. 
+            - For each correct answer, you will get some $10 from me as a reward.
+            - Be nice with people.");
 
             // Get chat completion service
             var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
