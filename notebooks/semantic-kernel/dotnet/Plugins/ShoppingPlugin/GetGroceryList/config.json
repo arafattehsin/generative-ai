@@ -3,7 +3,7 @@
   "description": "Suggest a grocery items for a given recipe",
   "execution_settings": {
     "default": {
-      "max_tokens": 100,
+      "max_tokens": 200,
       "temperature": 0.4,
       "top_p": 0.0,
       "presence_penalty": 0.0,
