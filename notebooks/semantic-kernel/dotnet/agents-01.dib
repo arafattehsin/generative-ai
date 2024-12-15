@@ -1,0 +1,426 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+# 🤿 Deep dive with Agentic AI (Beginners to Intermediate)
+`Author: Arafat Tehsin`
+
+Imagine having a team of specialised AI assistants in your organisation - one that expertly handles customer support tickets, another that analyses critical business data and a third that streamlines employee onboarding. Now imagine them working together seamlessly to solve complex business challenges while reducing response times and improving accuracy.
+
+Just like a modern enterprise where different departments collaborate to achieve business goals, these AI agents combine their specialised capabilities to handle complex workflows. Think of how a new employee request moves through HR, IT, and Finance departments - now envision AI agents orchestrating this entire process automatically, from generating documentation to setting up system access and creating training plans. They're coming, sooner than you think. 🚀
+
+---
+
+The assumption is that you're already equipped with the information on how to work with the Polyglot Notebooks. If you have not worked with them in the past then I'd recommend you to try `getting-started.ipynb` notebook within this repo.
+
+#!csharp
+
+string azureOpenAIKey = Environment.GetEnvironmentVariable("AOI_KEY_SWDN");
+string azureOpenAIEndpoint = Environment.GetEnvironmentVariable("AOI_ENDPOINT_SWDN");
+string googleGeminiAPIKey = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_KEY");
+string ollamaEndpoint = "http://localhost:11434";
+
+#!markdown
+
+📰 Imagine a bustling newsroom, where a top reporter to cover a major story. The Kernel is the editor-in-chief, managing experts from Azure OpenAI, Google Gemini, and Ollama. Each "reporter" has a unique specialty: Azure OpenAI may handle in-depth investigations, Google Gemini excels at rapid fact-checking, and Ollama covers insightful analysis. Under the Kernel's direction, these specialists work in harmony, gathering and piecing together information to create a comprehensive, high-impact story—delivering complex insights with precision and clarity, just like a well-run newsroom. 
+
+_I will leave this example for you to create at the end._ 😉
+
+#!csharp
+
+// Getting the latest package released on Oct, 2024 - https://www.nuget.org/packages/Microsoft.SemanticKernel/
+#r "nuget: Microsoft.SemanticKernel, *-*"
+#r "nuget: Microsoft.SemanticKernel.Connectors.Google, *-*"
+#r "nuget: Microsoft.SemanticKernel.Plugins.Core,*-*"
+#r "nuget: Microsoft.SemanticKernel.Agents.Abstractions,*-*"
+#r "nuget: Microsoft.SemanticKernel.Agents.Core, *-*"
+#r "nuget: Microsoft.SemanticKernel.Agents.OpenAI, *-*"
+#r "nuget: Microsoft.SemanticKernel.Connectors.Ollama, 1.28.0-alpha"
+
+#!import Settings.cs
+
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Plugins.Core;
+using Microsoft.SemanticKernel.Connectors.Google;
+using Microsoft.SemanticKernel.Connectors.Ollama;
+using Kernel = Microsoft.SemanticKernel.Kernel;
+using Microsoft.Extensions.DependencyInjection;
+
+//Create Kernel builder
+var builder = Kernel.CreateBuilder();
+
+builder.AddAzureOpenAIChatCompletion("gpt-4", azureOpenAIEndpoint, azureOpenAIKey, "gpt-4-service");   
+
+#pragma warning disable SKEXP0070
+builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-1.5-flash-latest", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1_Beta, serviceId: "gemini-service");
+
+Uri ollamaUri = new Uri(ollamaEndpoint);
+builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:11434"), "ollama-service");
+
+#!markdown
+
+Imagine you’re running a customer service center 📞, where each inquiry is handled by a specialised agent. Here, `weatherAgent` is your dedicated "Weather Expert" 🌦️, trained specifically to answer all weather-related questions. The `Kernel` acts as the expert’s support system 🛠️, ensuring every response aligns with the latest standards and practices.
+
+When a customer asks, “What’s the weather in Seattle?” 🌧️, `InvokeAgentAsync` is like the call center operator 👩‍💻, routing the query to the Weather Expert, who quickly pulls up a ready-made response. The `ChatHistory` serves as a record book 📜, maintaining continuity in case the customer has follow-up questions. With this setup, you can handle weather inquiries smoothly, with the expert agent delivering responses that feel natural and conversational 🌈.
+
+#!csharp
+
+#!import Common.cs
+
+#pragma warning disable SKEXP0110, SKEXP0001
+using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+    
+Kernel weatherAgentKernel = builder.Build();
+
+ChatCompletionAgent weatherAgent =
+    new()
+    {
+        Name = "WeatherAgent",
+        Instructions = "You are an agent designed to query and retrieve information about the weather of a given location. If you have been asked to provide information about two distinguish locations then you need to get the information appropriately. For now, just make it up, you do not have to call any service.",
+        Kernel = weatherAgentKernel,
+        Arguments = new KernelArguments(
+            new OpenAIPromptExecutionSettings() 
+            { 
+               ServiceId = "ollama-service",
+            })
+    };
+
+// Create a ChatHistory object to maintain the conversation state.
+ChatHistory chat = [];
+
+await Common.InvokeAgentAsync("What is the weather in Seattle?", weatherAgent, chat);
+
+#!markdown
+
+## Kitchen Assistant 🍽️
+Think of this as building a smart kitchen assistant 🤖, where an agent has its own specialty. The `foodAgent` is like a personalized meal planner 👩‍🍳, who considers the current weather 🌦️ and time of day ⏰ to suggest the perfect dish. The `foodAgentKernel` serves as the central system in the kitchen, and you’ve just enhanced it by adding plugins: the `TimePlugin` 🕒 helps the agent track the time of day, while the `FoodPlugin` 🍕 provides detailed ingredient lists and recipes.
+
+When you ask, “What should I eat right now?” 🥘, `InvokeAgentAsync` sends your request to the Food Agent, who now has all the context to make a smart recommendation. The agent ensures all meal suggestions are halal or vegetarian 🌱, and even provides the recipe to go along with the dish. The `ChatHistory` keeps track of your culinary conversation 🍴, so you can ask follow-up questions and get new suggestions. With the added plugins, the assistant is ready to guide you through tasty and thoughtful meal choices at any time!
+
+#!csharp
+
+#pragma warning disable SKEXP0110, SKEXP0001, SKEXP0050
+
+Kernel foodAgentKernel = weatherAgentKernel.Clone();
+foodAgentKernel.Plugins.Clear();
+foodAgentKernel.ImportPluginFromType<TimePlugin>();
+foodAgentKernel.ImportPluginFromPromptDirectory("plugins/FoodPlugin");
+// Console.WriteLine(foodAgentKernel.Plugins.ToList().Count);
+
+ChatCompletionAgent foodAgent =
+    new()
+    {
+        Name = "FoodAgent",
+        Instructions = "You are an agent responsible for suggestion of the food option depending upon the weather and time of the day. You need to make sure that you suggest something halal or vegetarian.",
+        Kernel = foodAgentKernel,
+        Arguments = new KernelArguments(
+            new OpenAIPromptExecutionSettings() 
+            { 
+               ServiceId = "gpt-4-service",
+               FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+            })
+    };
+
+// Create a ChatHistory object to maintain the conversation state.
+ChatHistory chat = [];
+
+await Common.InvokeAgentAsync("What should I eat right now? Also, whatever the dish you plan, can you please tell me the recipe of that too?", foodAgent, chat);
+
+#!markdown
+
+## Tour Planner 🧳✈️
+
+Think of this as setting up a travel agency with two highly specialised agents. The **Travel Planner Agent** is like an expert trip organizer, focused on creating concise, detailed itineraries that match the user’s preferences. It considers everything from destinations to accommodations and calculates the total budget 💸, ensuring every detail is accounted for without unnecessary explanation.
+
+Then, we have the **Budget Advisor Agent**, who acts as the financial guardian 💰, analysing the travel plan and ensuring it stays within the specified budget. If the plan exceeds the user’s budget, the agent rejects it with a firm "no" 🚫, but if it fits, it gives a confident "yes" ✅. Both agents work in tandem under the coordination of the `AgentGroupChat`, which keeps the conversation flowing smoothly, ensuring both the travel plan and budget are aligned. This system is like a well-oiled machine, where the **Travel Planner** creates the plan, and the **Budget Advisor** ensures it’s financially feasible, with everything wrapped up in a neat, efficient process.
+
+#!csharp
+
+#!import Plugins/BudgetAdvisor/BudgetAdvisor.cs
+
+#pragma warning disable SKEXP0110, SKEXP0001, SKEXP0050
+using System.Threading;
+using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.Chat;
+using Microsoft.SemanticKernel.Agents.OpenAI;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Agents.History;
+
+
+// Import the BudgetPlanner plugin
+Common common = new();
+Kernel travelPlannerKenrel = common.CreateKernelWithChatCompletion();
+
+// Create the Travel Planner Agent
+var travelPlannerAgent = new ChatCompletionAgent
+{
+    Name = "TravelPlanner",
+    Instructions = "You create detailed travel itineraries based on user preferences. You are very concise, to the point and does not waste time in explaining things in detail. At the end of each plan, you also calculate your total and make sure you provide reasoning of that total budget. Consider suggestions when revising the travel plan.",
+    Kernel = travelPlannerKenrel,
+    Arguments = new KernelArguments(
+        new OpenAIPromptExecutionSettings
+        {
+            ServiceId = "gpt-4-service",
+        }
+    )
+};
+
+Kernel budgetAdvisorKernel = travelPlannerKenrel.Clone();
+budgetAdvisorKernel.ImportPluginFromObject(new BudgetAdvisor());
+
+// Create the Budget Advisor Agent
+var budgetAdvisorAgent = new ChatCompletionAgent
+{
+    Name = "BudgetAdvisor",
+    Instructions = "You analyse travel plans and suggest adjustments to fit within the total cost. Your goal is to ensure that the user's travel plans are financially feasible and not beyond the total cost. If they are not within the range, provide feedback and reject the plan with no. If it is within a range then approve it with a yes.",
+    Kernel = budgetAdvisorKernel,
+    Arguments = new KernelArguments(
+        new OpenAIPromptExecutionSettings
+        {
+            ServiceId = "gemini-service",
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+        }
+    )
+};
+
+// Create the AgentGroupChat with the agents and strategies
+var chat = new AgentGroupChat(travelPlannerAgent, budgetAdvisorAgent)
+{
+    ExecutionSettings =
+             new()
+             {
+                //  // Here a KernelFunctionSelectionStrategy selects agents based on a prompt function.
+                  SelectionStrategy = new SequentialSelectionStrategy(),
+                     
+                      // Here KernelFunctionTerminationStrategy will terminate
+                 // when the concierge agent has given their approval.
+                 TerminationStrategy = 
+                                new ApprovalTerminationStrategy()
+                {
+                    // Only the art-director may approve.
+                    Agents = [budgetAdvisorAgent],
+                    // Limit total number of turns
+                    MaximumIterations = 10,
+                }
+                     
+             }
+};
+
+// User input to start the conversation
+var userMessage = new ChatMessageContent(AuthorRole.User, "I want to plan a trip to Japan for 6 days, staying in hotels. My budget is $1200.");
+chat.AddChatMessage(userMessage);
+
+// Invoke the chat and display the conversation
+await foreach (var response in chat.InvokeAsync())
+{
+    var authorExpression = response.Role == AuthorRole.User ? string.Empty : $" - {response.AuthorName}";
+    var contentExpression = string.IsNullOrWhiteSpace(response.Content) ? string.Empty : response.Content;
+    Console.WriteLine($"\n# {response.Role}{authorExpression}: {contentExpression}");
+}
+
+Console.WriteLine($"\n[CONVERSATION COMPLETED: {chat.IsComplete}]");
+
+ private sealed class ApprovalTerminationStrategy : TerminationStrategy
+ {
+     // Terminate when the final message contains the term "approve"
+     protected override Task<bool> ShouldAgentTerminateAsync(Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
+         => Task.FromResult(history[history.Count - 1].Content?.Contains("yes", StringComparison.OrdinalIgnoreCase) ?? false);
+ }
+
+#!markdown
+
+## Concierge Service 🏨🧳
+
+A service that can plan a personalized day trip for you, covering everything from weather forecasts 🌤️ to food choices 🍽️, travel activities 🗺️, and budget approvals 💵. The system consists of multiple agents working in harmony, each playing a specialized role, like a team of experts collaborating to deliver the best experience.
+
+The **Weather Agent** starts the process, providing a quick, concise weather update 🌡️. The **Food Agent** follows up with food suggestions based on the weather and time of day 🌞🍲, while the **Travel Agent** recommends activities that match the conditions, ensuring an exciting itinerary ✨. Finally, the **Concierge Agent** steps in to review the whole plan, ensuring everything fits together perfectly, checking for consistency in weather, food, and travel plans 🔍. The entire system is designed to dynamically select which agent responds next, using a custom selection strategy 🧠, and will terminate the process once the Concierge Agent approves the plan 👍 or rejects it with a "no" 👎. The `AgentGroupChat` orchestrates all this, making sure every agent does their job in sequence until the plan is finalized.
+
+With this setup, you can chat with the system, asking for a day plan in any city, and the agents will work together seamlessly to provide a travel plan that is both enjoyable and feasible, tailored to your preferences and budget!
+
+#!csharp
+
+#pragma warning disable SKEXP0110
+
+#!import Common.cs
+
+#pragma warning disable SKEXP0110, SKEXP0001
+using System.Threading;
+using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.Chat;
+using Microsoft.SemanticKernel.Agents.OpenAI;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Agents.History;
+
+Common common = new();
+
+Kernel weatherAgentKernel = common.CreateKernelWithChatCompletion();
+
+ChatCompletionAgent weatherAgent =
+    new()
+    {
+        Name = "WeatherAgent",
+        Instructions = "You are an agent designed to query and retrieve information about the weather of a given location. Keep it short and concise such as it's 20 celsious sunny, hot, cold, rainy or cloud with no description. For now, just make it up, you do not have to call any service. Do not tell anything other than the weather.",
+        Kernel = weatherAgentKernel,
+        Arguments = new KernelArguments(
+            new OpenAIPromptExecutionSettings() 
+            { 
+               ServiceId = "gpt-4-service",
+            })
+    };
+
+    
+// Food Agent     
+Kernel foodAgentKernel = weatherAgentKernel.Clone();
+foodAgentKernel.ImportPluginFromPromptDirectory("plugins/FoodPlugin");
+
+ChatCompletionAgent foodAgent =
+    new()
+    {
+        Name = "FoodAgent",
+        Instructions = "You are an agent responsible for suggestion of the food depending upon the weather and time of the day. If any feedback is provided about the dietary requirement then you need to fulfill it. Do not tell anything other than the food.",
+        Kernel = foodAgentKernel,
+        Arguments = new KernelArguments(
+            new OpenAIPromptExecutionSettings() 
+            { 
+               ServiceId = "gpt-4-service",
+               FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+            })
+    };
+
+
+// Travel Agent to recommend activities and creates an itinerary
+Kernel travelAgentKernel = weatherAgentKernel.Clone();
+
+ChatCompletionAgent travelAgent =
+    new()
+    {
+        Name = "TravelAgent",
+        Instructions = "You are an agent responsible for suggesting activities and creating an itinerary for a given location with respect to the weather. Do not tell anything other than the travel plans. Your travel plans should not be more than 2 activities.",
+        Kernel = travelAgentKernel,
+        Arguments = new KernelArguments(
+             new OpenAIPromptExecutionSettings() 
+             { 
+                ServiceId = "gpt-4-service",
+             })
+    };
+
+// Concierge Agent to personally review and optimize the plan
+Kernel conciergeAgentKernel = weatherAgentKernel.Clone();
+
+ChatCompletionAgent conciergeAgent =
+    new()
+    {
+        Name = "ConciergeAgent",
+        Instructions = "You are an experienced hotel concierge who is responsible for the overall destination experience for the guest. You should:\n" +
+            "1. Review if the activities match the weather conditions. You also need to make sure that you get weather, food and travel plan before approving or rejecting the plan.\n" +
+            "2. Ensure restaurant recommendations align with meal times and weather. If meal does not contain any vegetarian options then reject the plan.\n" +
+            "3. Always provide your feedback but very concise, to the point. No extra chatty words.\n" +
+            "4. You are only allowed to approve with a word approve or else provide your feedback as why it is not approved.",
+        Kernel = conciergeAgentKernel,
+        Arguments = new KernelArguments(
+            new OpenAIPromptExecutionSettings() 
+            { 
+               ServiceId = "gpt-4-service",
+            })
+    };
+
+// Termination Function Stragegy
+KernelFunction terminationFunction =
+    AgentGroupChat.CreatePromptFunctionForStrategy(
+        """
+        Determine if the travel plan has been approved. If so, respond with a single word: yes. Otherwise, provide feedback on why the plan is not approved.
+
+        History:
+        {{$history}}
+        """,
+        safeParameterNames: "history");
+
+KernelFunction selectionFunction =
+    AgentGroupChat.CreatePromptFunctionForStrategy(
+        $$$"""
+        Determine which participant takes the next turn in a conversation based on the the most recent participant. 
+        State only the name of the participant to take the next turn. 
+        No participant should take more than one turn in a row.
+        
+        Choose only from these participants in the following order:
+        - {{{weatherAgent.Name}}}
+        - {{{foodAgent.Name}}}
+        - {{{travelAgent.Name}}}
+        - {{{conciergeAgent.Name}}}
+        
+        After {{{weatherAgent.Name}}} has responded, select the {{{foodAgent.Name}}} agent for the next response.
+        After {{{foodAgent.Name}}} has responded, select the {{{travelAgent.Name}}} agent for the next response.
+        After {{{travelAgent.Name}}} has responded, select the {{{conciergeAgent.Name}}} agent for the next response.
+
+        Based upon the feedback of ConciergeAgent's feedback, select the appropriate agent for the response. 
+
+        History:
+        {{$history}}
+        """,
+        safeParameterNames: "history");
+
+// Limit history used for selection and termination to the most recent message.
+ChatHistoryTruncationReducer strategyReducer = new(10);
+
+ // Create a chat for agent interaction.
+ AgentGroupChat chat =
+     new(weatherAgent, foodAgent, travelAgent, conciergeAgent)
+     {
+         ExecutionSettings =
+             new()
+             {
+                //  // Here a KernelFunctionSelectionStrategy selects agents based on a prompt function.
+                  SelectionStrategy =
+                      new KernelFunctionSelectionStrategy(selectionFunction, weatherAgentKernel.Clone())
+                      {
+                          // Always start with the weather agent
+                          InitialAgent = weatherAgent,
+                          // Returns the entire result value as a string.
+                          ResultParser = (result) => result.GetValue<string>() ?? conciergeAgent.Name,
+                          // The prompt variable name for the history argument.
+                          HistoryVariableName = "history",
+                          // Save tokens by not including the entire history in the prompt
+                          HistoryReducer = strategyReducer
+                      },
+                     
+                      // Here KernelFunctionTerminationStrategy will terminate
+                 // when the concierge agent has given their approval.
+                 TerminationStrategy =
+                     new KernelFunctionTerminationStrategy(terminationFunction, weatherAgentKernel.Clone())
+                     {
+                         // Only the concierge agent may approve.
+                         Agents = [conciergeAgent],
+                         // Customer result parser to determine if the response is "yes"
+                         ResultParser = (result) => result.GetValue<string>()?.Contains("yes", StringComparison.OrdinalIgnoreCase) ?? false,
+                         // The prompt variable name for the history argument.
+                         HistoryVariableName = "history",
+                         // Limit total number of turns
+                         MaximumIterations = 10,
+                         // Save tokens by not including the entire history in the prompt
+                         HistoryReducer = strategyReducer
+                     },
+             }
+     };
+
+ // Invoke chat and display messages.
+ ChatMessageContent input = new(AuthorRole.User, "I'm planning to spend a day in Seattle tomorrow. Can you help me plan my day? I need to know about the weather, food options, and activities I can do.");
+ chat.AddChatMessage(input);
+
+await foreach (ChatMessageContent response in chat.InvokeAsync())
+{
+     // Include ChatMessageContent.AuthorName in output, if present.
+    string authorExpression = response.Role == AuthorRole.User ? string.Empty : $" - {response.AuthorName ?? "*"}";
+ // Include TextContent (via ChatMessageContent.Content), if present.
+    string contentExpression = string.IsNullOrWhiteSpace(response.Content) ? string.Empty : response.Content;
+    bool isCode = response.Metadata?.ContainsKey(OpenAIAssistantAgent.CodeInterpreterMetadataKey) ?? false;
+    string codeMarker = isCode ? "\n  [CODE]\n" : " ";
+    Console.WriteLine($"\n# {response.Role}{authorExpression}:{codeMarker}{contentExpression}");
+}
+
+Console.WriteLine($"\n[IS COMPLETED: {chat.IsComplete}]");
