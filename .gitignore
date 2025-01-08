@@ -33,3 +33,12 @@
 /samples/dotnet/local-rag-sk/.vs
 /samples/dotnet/local-rag-sk/bin/Debug/net8.0
 /samples/dotnet/local-rag-sk/obj
+/samples/dotnet/microsoft-agent-sk/.vs/microsoft-agent-sk
+/samples/dotnet/microsoft-agent-sk/bin/Debug/net8.0
+/samples/dotnet/microsoft-agent-sk/obj
+/samples/dotnet/microsoft-agent-sk/.config
+/samples/dotnet/microsoft-agent-sk/.vs/ProjectEvaluation
+/samples/dotnet/microsoft-agent-sk/bin/Release/net8.0
+/samples/dotnet/microsoft-agent-sk/Properties/PublishProfiles
+/samples/dotnet/microsoft-agent-sk/Properties/ServiceDependencies/flight-app-demo - Web Deploy
+/samples/dotnet/microsoft-agent-sk/Properties/ServiceDependencies/travelagentdemo - Web Deploy

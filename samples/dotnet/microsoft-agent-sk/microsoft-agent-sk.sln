@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35507.96 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "microsoft-agent-sk", "microsoft-agent-sk.csproj", "{FDAAE59A-46A6-5808-89C2-83FCC712A7F6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FDAAE59A-46A6-5808-89C2-83FCC712A7F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDAAE59A-46A6-5808-89C2-83FCC712A7F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDAAE59A-46A6-5808-89C2-83FCC712A7F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDAAE59A-46A6-5808-89C2-83FCC712A7F6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {422E3E11-D30E-496B-B188-0924F4B9BF0E}
+	EndGlobalSection
+EndGlobal
