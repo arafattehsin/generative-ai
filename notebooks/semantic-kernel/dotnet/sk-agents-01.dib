@@ -5,6 +5,7 @@
 #!markdown
 
 # 🤿 Deep dive with Agentic AI (Beginners to Intermediate)
+
 `Author: Arafat Tehsin`
 
 Imagine having a team of specialised AI assistants in your organisation - one that expertly handles customer support tickets, another that analyses critical business data and a third that streamlines employee onboarding. Now imagine them working together seamlessly to solve complex business challenges while reducing response times and improving accuracy.
@@ -24,7 +25,7 @@ string ollamaEndpoint = "http://localhost:11434";
 
 #!markdown
 
-📰 Imagine a bustling newsroom, where a top reporter to cover a major story. The Kernel is the editor-in-chief, managing experts from Azure OpenAI, Google Gemini, and Ollama. Each "reporter" has a unique specialty: Azure OpenAI may handle in-depth investigations, Google Gemini excels at rapid fact-checking, and Ollama covers insightful analysis. Under the Kernel's direction, these specialists work in harmony, gathering and piecing together information to create a comprehensive, high-impact story—delivering complex insights with precision and clarity, just like a well-run newsroom. 
+📰 Imagine a bustling newsroom, where a top reporter to cover a major story. The Kernel is the editor-in-chief, managing experts from Azure OpenAI, Google Gemini, and Ollama. Each "reporter" has a unique specialty: Azure OpenAI may handle in-depth investigations, Google Gemini excels at rapid fact-checking, and Ollama covers insightful analysis. Under the Kernel's direction, these specialists work in harmony, gathering and piecing together information to create a comprehensive, high-impact story—delivering complex insights with precision and clarity, just like a well-run newsroom.
 
 _I will leave this example for you to create at the end._ 😉
 
@@ -34,12 +35,11 @@ _I will leave this example for you to create at the end._ 😉
 #r "nuget: Microsoft.SemanticKernel, *-*"
 #r "nuget: Microsoft.SemanticKernel.Connectors.Google, *-*"
 #r "nuget: Microsoft.SemanticKernel.Plugins.Core,*-*"
-#r "nuget: Microsoft.SemanticKernel.Agents.Abstractions,*-*"
 #r "nuget: Microsoft.SemanticKernel.Agents.Core, *-*"
 #r "nuget: Microsoft.SemanticKernel.Agents.OpenAI, *-*"
 #r "nuget: Microsoft.SemanticKernel.Connectors.Ollama, 1.28.0-alpha"
 
-#!import Settings.cs
+#!import Helpers/Settings.cs
 
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Plugins.Core;
@@ -56,8 +56,8 @@ builder.AddAzureOpenAIChatCompletion("gpt-4", azureOpenAIEndpoint, azureOpenAIKe
 #pragma warning disable SKEXP0070
 builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-1.5-flash-latest", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1_Beta, serviceId: "gemini-service");
 
-Uri ollamaUri = new Uri(ollamaEndpoint);
-builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:11434"), "ollama-service");
+//Uri ollamaUri = new Uri(ollamaEndpoint);
+// builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:11434"), "ollama-service");
 
 #!markdown
 
@@ -67,7 +67,7 @@ When a customer asks, “What’s the weather in Seattle?” 🌧️, `InvokeAge
 
 #!csharp
 
-#!import Common.cs
+#!import Helpers/GettingStarted.cs
 
 #pragma warning disable SKEXP0110, SKEXP0001
 using Microsoft.SemanticKernel.Agents;
@@ -85,18 +85,19 @@ ChatCompletionAgent weatherAgent =
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
             { 
-               ServiceId = "ollama-service",
+               ServiceId = "gpt-4-service",
             })
     };
 
 // Create a ChatHistory object to maintain the conversation state.
 ChatHistory chat = [];
 
-await Common.InvokeAgentAsync("What is the weather in Seattle?", weatherAgent, chat);
+await GettingStarted.InvokeAgentAsync("What is the weather in Seattle?", weatherAgent, chat);
 
 #!markdown
 
 ## Kitchen Assistant 🍽️
+
 Think of this as building a smart kitchen assistant 🤖, where an agent has its own specialty. The `foodAgent` is like a personalized meal planner 👩‍🍳, who considers the current weather 🌦️ and time of day ⏰ to suggest the perfect dish. The `foodAgentKernel` serves as the central system in the kitchen, and you’ve just enhanced it by adding plugins: the `TimePlugin` 🕒 helps the agent track the time of day, while the `FoodPlugin` 🍕 provides detailed ingredient lists and recipes.
 
 When you ask, “What should I eat right now?” 🥘, `InvokeAgentAsync` sends your request to the Food Agent, who now has all the context to make a smart recommendation. The agent ensures all meal suggestions are halal or vegetarian 🌱, and even provides the recipe to go along with the dish. The `ChatHistory` keeps track of your culinary conversation 🍴, so you can ask follow-up questions and get new suggestions. With the added plugins, the assistant is ready to guide you through tasty and thoughtful meal choices at any time!
@@ -109,7 +110,6 @@ Kernel foodAgentKernel = weatherAgentKernel.Clone();
 foodAgentKernel.Plugins.Clear();
 foodAgentKernel.ImportPluginFromType<TimePlugin>();
 foodAgentKernel.ImportPluginFromPromptDirectory("plugins/FoodPlugin");
-// Console.WriteLine(foodAgentKernel.Plugins.ToList().Count);
 
 ChatCompletionAgent foodAgent =
     new()
@@ -128,7 +128,7 @@ ChatCompletionAgent foodAgent =
 // Create a ChatHistory object to maintain the conversation state.
 ChatHistory chat = [];
 
-await Common.InvokeAgentAsync("What should I eat right now? Also, whatever the dish you plan, can you please tell me the recipe of that too?", foodAgent, chat);
+await GettingStarted.InvokeAgentAsync("What should I eat right now? Also, whatever the dish you plan, can you please tell me the recipe of that too?", foodAgent, chat);
 
 #!markdown
 
@@ -149,11 +149,9 @@ using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.Agents.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Agents.History;
-
 
 // Import the BudgetPlanner plugin
-Common common = new();
+GettingStarted common = new();
 Kernel travelPlannerKenrel = common.CreateKernelWithChatCompletion();
 
 // Create the Travel Planner Agent
@@ -244,20 +242,22 @@ With this setup, you can chat with the system, asking for a day plan in any city
 
 #!csharp
 
-#pragma warning disable SKEXP0110
+#!import Helpers/GettingStarted.cs
+#!import Helpers/JsonResultTranslator.cs
 
-#!import Common.cs
-
-#pragma warning disable SKEXP0110, SKEXP0001
+#pragma warning disable SKEXP0110, SKEXP0001, SKEXP0010
 using System.Threading;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.Agents.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Agents.History;
 
-Common common = new();
+public record OuterTerminationResult(bool isApproved, string reason);
+
+public record AgentSelectionResult(string name, string reason);
+
+GettingStarted common = new();
 
 Kernel weatherAgentKernel = common.CreateKernelWithChatCompletion();
 
@@ -276,14 +276,14 @@ ChatCompletionAgent weatherAgent =
 
     
 // Food Agent     
-Kernel foodAgentKernel = weatherAgentKernel.Clone();
-foodAgentKernel.ImportPluginFromPromptDirectory("plugins/FoodPlugin");
+Kernel foodAgentKernel = common.CreateKernelWithChatCompletion();
+foodAgentKernel.ImportPluginFromPromptDirectory("Plugins/FoodPlugin");
 
 ChatCompletionAgent foodAgent =
     new()
     {
         Name = "FoodAgent",
-        Instructions = "You are an agent responsible for suggestion of the food depending upon the weather and time of the day. If any feedback is provided about the dietary requirement then you need to fulfill it. Do not tell anything other than the food.",
+        Instructions = "You are an agent responsible for suggestion of the food depending upon the weather and time of the day. If any feedback is provided by {{{conciergeAgent.Name}}} then you need to address it. Do not tell anything other than the food.",
         Kernel = foodAgentKernel,
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
@@ -295,7 +295,7 @@ ChatCompletionAgent foodAgent =
 
 
 // Travel Agent to recommend activities and creates an itinerary
-Kernel travelAgentKernel = weatherAgentKernel.Clone();
+Kernel travelAgentKernel = common.CreateKernelWithChatCompletion();
 
 ChatCompletionAgent travelAgent =
     new()
@@ -311,7 +311,7 @@ ChatCompletionAgent travelAgent =
     };
 
 // Concierge Agent to personally review and optimize the plan
-Kernel conciergeAgentKernel = weatherAgentKernel.Clone();
+Kernel conciergeAgentKernel = common.CreateKernelWithChatCompletion();
 
 ChatCompletionAgent conciergeAgent =
     new()
@@ -330,20 +330,23 @@ ChatCompletionAgent conciergeAgent =
             })
     };
 
-// Termination Function Stragegy
-KernelFunction terminationFunction =
-    AgentGroupChat.CreatePromptFunctionForStrategy(
-        """
-        Determine if the travel plan has been approved. If so, respond with a single word: yes. Otherwise, provide feedback on why the plan is not approved.
+OpenAIPromptExecutionSettings jsonSettings = new() { ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonObjectFormat() };
+private string terminationFunctionInstructions = 
+ """
+        Determine if the travel plan has been approved. Provide the reason of your decision as well.
+
+         Respond in JSON format.  The JSON schema can include only:
+        {
+            "isApproved": "bool (true if the user request has been approved)",
+            "reason": "string (the reason for your determination)"
+        }
 
         History:
         {{$history}}
-        """,
-        safeParameterNames: "history");
+        """;
 
-KernelFunction selectionFunction =
-    AgentGroupChat.CreatePromptFunctionForStrategy(
-        $$$"""
+private string selectionFunctionInstructions =
+$$$"""
         Determine which participant takes the next turn in a conversation based on the the most recent participant. 
         State only the name of the participant to take the next turn. 
         No participant should take more than one turn in a row.
@@ -353,20 +356,29 @@ KernelFunction selectionFunction =
         - {{{foodAgent.Name}}}
         - {{{travelAgent.Name}}}
         - {{{conciergeAgent.Name}}}
-        
+
+        Always follow these rules when selecting the next participant:        
         After {{{weatherAgent.Name}}} has responded, select the {{{foodAgent.Name}}} agent for the next response.
         After {{{foodAgent.Name}}} has responded, select the {{{travelAgent.Name}}} agent for the next response.
         After {{{travelAgent.Name}}} has responded, select the {{{conciergeAgent.Name}}} agent for the next response.
 
-        Based upon the feedback of ConciergeAgent's feedback, select the appropriate agent for the response. 
+        Based upon the feedback of ConciergeAgent's feedback, select the appropriate agent for the response. For example, if the suggestion is for food then it should be the {{{foodAgent.Name}}}.
 
+        Respond in JSON format.  The JSON schema can include only:
+        {
+            "name": "string (the name of the agent selected for the next turn)",
+            "reason": "string (the reason for the participant was selected)"
+        }
+        
         History:
         {{$history}}
-        """,
-        safeParameterNames: "history");
+        """;
+
+KernelFunction selectionFunction = KernelFunctionFactory.CreateFromPrompt(selectionFunctionInstructions, jsonSettings);
+KernelFunction terminationFunction = KernelFunctionFactory.CreateFromPrompt(terminationFunctionInstructions, jsonSettings);
 
 // Limit history used for selection and termination to the most recent message.
-ChatHistoryTruncationReducer strategyReducer = new(10);
+ChatHistoryTruncationReducer strategyReducer = new(5);
 
  // Create a chat for agent interaction.
  AgentGroupChat chat =
@@ -377,12 +389,20 @@ ChatHistoryTruncationReducer strategyReducer = new(10);
              {
                 //  // Here a KernelFunctionSelectionStrategy selects agents based on a prompt function.
                   SelectionStrategy =
-                      new KernelFunctionSelectionStrategy(selectionFunction, weatherAgentKernel.Clone())
+                      new KernelFunctionSelectionStrategy(selectionFunction, common.CreateKernelWithChatCompletion())
                       {
                           // Always start with the weather agent
                           InitialAgent = weatherAgent,
                           // Returns the entire result value as a string.
-                          ResultParser = (result) => result.GetValue<string>() ?? conciergeAgent.Name,
+                          ResultParser = (result) => 
+                          {
+                           AgentSelectionResult? jsonResult = JsonResultTranslator.Translate<AgentSelectionResult>(result.GetValue<string>());
+
+                            string? agentName = string.IsNullOrWhiteSpace(jsonResult?.name) ? null : jsonResult?.name;
+                            agentName ??= foodAgent.Name;
+
+                            return agentName;
+                          },
                           // The prompt variable name for the history argument.
                           HistoryVariableName = "history",
                           // Save tokens by not including the entire history in the prompt
@@ -392,12 +412,19 @@ ChatHistoryTruncationReducer strategyReducer = new(10);
                       // Here KernelFunctionTerminationStrategy will terminate
                  // when the concierge agent has given their approval.
                  TerminationStrategy =
-                     new KernelFunctionTerminationStrategy(terminationFunction, weatherAgentKernel.Clone())
+                     new KernelFunctionTerminationStrategy(terminationFunction, common.CreateKernelWithChatCompletion())
                      {
                          // Only the concierge agent may approve.
                          Agents = [conciergeAgent],
                          // Customer result parser to determine if the response is "yes"
-                         ResultParser = (result) => result.GetValue<string>()?.Contains("yes", StringComparison.OrdinalIgnoreCase) ?? false,
+                         
+                         ResultParser =
+                        (result) =>
+                        {
+                            OuterTerminationResult? jsonResult = JsonResultTranslator.Translate<OuterTerminationResult>(result.GetValue<string>());
+
+                            return jsonResult?.isApproved ?? false;
+                        },
                          // The prompt variable name for the history argument.
                          HistoryVariableName = "history",
                          // Limit total number of turns
