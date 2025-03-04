@@ -7,12 +7,12 @@ using Microsoft.SemanticKernel;
 using Kernel = Microsoft.SemanticKernel.Kernel;
 using System;
 
-public class Common
+public class GettingStarted
 {
     string azureOpenAIKey = Environment.GetEnvironmentVariable("AOI_KEY_SWDN");
     string azureOpenAIEndpoint = Environment.GetEnvironmentVariable("AOI_ENDPOINT_SWDN");
     string googleGeminiAPIKey = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_KEY");
-    string ollamaEndpoint = "http://localhost:11434";
+    // string ollamaEndpoint = "http://localhost:11434";
 
     public static async Task InvokeAgentAsync(string input, ChatCompletionAgent agent, ChatHistory chat)
     {
@@ -35,8 +35,9 @@ public class Common
 #pragma warning disable SKEXP0070
         builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-1.5-flash-latest", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1_Beta, serviceId: "gemini-service");
 
-        builder.AddOllamaChatCompletion("llama3.2", new Uri(ollamaEndpoint), "ollama-service");
+        // builder.AddOllamaChatCompletion("llama3.2", new Uri(ollamaEndpoint), "ollama-service");
 
         return builder.Build();
     }
+
 }
