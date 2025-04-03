@@ -1,0 +1,10 @@
+Product | Category | Units Sold | Revenue
+--------------------------------------------------
+Laptop | Electronics | 120 | $120000
+Smartphone | Electronics | 300 | $180000
+Headphones | Accessories | 150 | $15000
+Tablet | Electronics | 90 | $45000
+Smartwatch | Wearables | 110 | $22000
+Camera | Electronics | 80 | $40000
+Monitor | Accessories | 130 | $26000
+Keyboard | Accessories | 200 | $10000
