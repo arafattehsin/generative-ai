@@ -1,0 +1,11 @@
+AgentID	AgentName	CallsHandled	AverageResolutionTime	CustomerSatisfactionScore
+201	Alice	150	5.2	4.5
+202	Bob	200	4.8	4.7
+203	Charlie	180	5	4.6
+204	David	170	5.5	4.4
+205	Eve	160	4.9	4.8
+206	Frank	190	5.1	4.9
+207	Grace	175	4.7	4.3
+208	Hank	165	5.3	4.2
+209	Ivy	155	4.6	4.1
+210	Jack	185	5.4	4

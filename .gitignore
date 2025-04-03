@@ -42,3 +42,10 @@
 /samples/dotnet/microsoft-agent-sk/Properties/PublishProfiles
 /samples/dotnet/microsoft-agent-sk/Properties/ServiceDependencies/flight-app-demo - Web Deploy
 /samples/dotnet/microsoft-agent-sk/Properties/ServiceDependencies/travelagentdemo - Web Deploy
+/samples/dotnet/processframework-sk/.vs/processframework-sk
+/samples/dotnet/processframework-sk/bin/Debug/net8.0
+/samples/dotnet/processframework-sk/obj
+/samples/dotnet/processframework-sk/.vs/ProjectEvaluation
+/notebooks/semantic-kernel/.vs/semantic-kernel/CopilotIndices/17.14.90.56529
+/notebooks/semantic-kernel/.vs/semantic-kernel/FileContentIndex
+/notebooks/semantic-kernel/.vs
