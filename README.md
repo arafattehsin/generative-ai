@@ -2,7 +2,7 @@
 From notebooks to the working samples, all things about Generative AI. 🚀
 
 ## Introduction
-This repository is a collection of notebooks and samples for Generative AI. It is designed to be a resource for developers who want to learn more about Generative AI (currently, Azure OpenAI Service) and how to use it in your applications.
+This repository is a collection of notebooks and samples for Generative AI. It is designed to be a resource for developers who want to learn more about Generative AI (currently, Azure OpenAI Service and others with Semantic Kernel) and how to use it in your applications.
 
 ## Getting Started
 
