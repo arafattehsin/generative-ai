@@ -1,5 +1,7 @@
-# Agentic AI with Semantic Kernel
+# Semantic Kernel Agent Framework & Azure AI Agent Service
 This folder contains a .NET based notebooks showcasing how to integrate with [Microsoft Semantic Kernel](https://github.com/microsoft/semantic-kernel) from the scratch. It provides various helpers, plugins and notebooks to help you quickly get started with building AI-driven applications with the enterprises using .NET ecosystem.
+
+`Disclaimer: The documentation has been modified using AI with the latest Agent mode in GitHub Copilot.`
 
 ## 📜 Table of Contents
 
@@ -11,6 +13,7 @@ This folder contains a .NET based notebooks showcasing how to integrate with [Mi
   - [📖Running the Notebooks](#-running-the-notebooks)
 - [🔌Plugins](#-plugins)
 - [📓Notebooks](#-notebooks)
+- [📂Resources](#-resources)
 - [⚙Configuration](#-configuration)
 - [🤝Contributing](#-contributing)
 - [📜License](#-license)
@@ -19,7 +22,9 @@ This folder contains a .NET based notebooks showcasing how to integrate with [Mi
 
 ## 🔍 Overview
 
-Semantic Kernel is an SDK that helps developers mix traditional programming with Large Language Models (LLMs). This project demonstrates how you can leverage Semantic Kernel in .NET applications, using helper classes, plugins and interactive (Polyglot) notebooks.
+Semantic Kernel is an SDK that helps developers mix traditional programming with Large Language Models (LLMs). This project demonstrates how you can leverage Semantic Kernel in .NET applications, using helper classes, plugins and interactive (Polyglot) notebooks. 
+
+It also features the latest Agent Framework as well as the Azure AI Agent Service to work, hand-in-hand with Semantic Kernel. 
 
 ## 📂 Project Structure
 
@@ -39,9 +44,18 @@ dotnet/
 │   ├── FoodPlugin/
 │   ├── GuessPlugin/
 │   └── ShoppingPlugin/
+├── Resources/
+│   ├── agent_performance_metrics.txt
+│   ├── HiEnterprise Troubleshooting Guide.docx
+│   ├── historical_customer_interactions.txt
+│   ├── HR Policies.md
+│   ├── Leave and Attendance Records.pdf
+│   ├── Policy Document.pdf
+│   └── sales_data.txt
 ├── getting-started.ipynb
 ├── settings.json
 ├── sk-agents-01.dib
+├── sk-azureai-agents-02.dib
 ├── README.md
 ```
 
@@ -90,22 +104,40 @@ This project includes several example plugins, each within its own folder under 
 
 ## 📓 Notebooks
 
-As of now, two notebooks are included for you to get started:
+As of now, three notebooks are included for you to get started:
 
 1. **getting-started.ipynb**  
    - A Jupyter Notebook that covers the fundamentals of Semantic Kernel usage.  
-   - Shows how to set up prompts, connect to AI services, and run basic operations.
-   - This also covers the multimodal capabilities 
+   - Shows how to set up prompts, connect to AI services, and run basic operations.  
+   - This also covers the multimodal capabilities.
 
 2. **sk-agents-01.dib**  
    - A .NET Interactive Notebook for more advanced use cases.  
-   - Demonstrates agent-based workflows and how to orchestrate multiple AI calls in a single pipeline.
+   - Demonstrates agent-based workflows and how to orchestrate multiple AI calls in a single pipeline.  
    - This also covers the multi-model, multi-agent scenarios.
 
-3. **sk-agents-02.dib** (Coming soon)
-   - This will uncover some other latest capabilities. Currently work is in progress. 🚧
+3. **sk-azureai-agents-02.dib (NEW)**  
+   - A .NET Interactive Notebook that dives deeper into Azure AI Agent Service.  
+   - Explores creating persistent, specialised AI agents with memory and personalized user interactions.  
+   - Demonstrates advanced use cases like weather forecasting, food ordering, HR policy search, and data visualization.
 
 Feel free to create additional notebooks or modify these to suit your needs.
+
+---
+
+## 📂 Resources
+
+This project also includes a `Resources` folder containing various files that are used by the notebooks and agents. These resources provide data and context for the AI agents to process and analyze. Here's a quick overview of the files:
+
+- **agent_performance_metrics.txt**: Contains performance metrics for customer service agents.
+- **HiEnterprise Troubleshooting Guide.docx**: A troubleshooting guide for resolving common customer issues.
+- **historical_customer_interactions.txt**: Logs of past customer interactions for analysis.
+- **HR Policies.md**: A markdown file detailing company HR policies.
+- **Leave and Attendance Records.pdf**: A PDF document with employee leave and attendance data.
+- **Policy Document.pdf**: A PDF file outlining company policies.
+- **sales_data.txt**: A text file containing sales data for analysis.
+
+These resources are utilized by various agents in the notebooks to demonstrate their capabilities, such as analyzing data, retrieving information, and providing insights.
 
 ---
 
