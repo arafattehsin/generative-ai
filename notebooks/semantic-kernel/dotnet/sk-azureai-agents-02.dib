@@ -61,7 +61,7 @@ using Azure.Identity;
 //Create Kernel builder
 var builder = Kernel.CreateBuilder();
 
-var client = AzureAIAgent.CreateAzureAIClient(azureAIAgentConnectionStringEnterprise, new AzureCliCredential());
+var client = AzureAIAgent.CreateAzureAIClient(azureAIAgentConnectionString, new AzureCliCredential());
 AgentsClient agentsClient = client.GetAgentsClient();
 
 // Get all the agents and threads and delete them
@@ -74,7 +74,7 @@ foreach (var agent in agents)
 
 #!markdown
 
-## Utility Functions for Agent Interaction 🧰🤖
+## 🧰 Utility Functions for Agent Interaction 
 
 This cell provides utility functions to streamline interactions with Azure AI Agents. Key functionalities include serializing objects to JSON (AsJson), formatting and displaying agent chat messages (WriteAgentChatMessage), invoking agents with user input and processing responses (InvokeAgentAsync), and creating or retrieving user-specific threads for conversations (CreateUserThreadAsync). These utilities enhance readability, manage user sessions, and simplify agent communication.
 
@@ -347,7 +347,6 @@ Dictionary<string, string> userMetadata = new()
 var threadArafat = await CreateUserThreadAsync(userMetadata, "Arafat");
 await InvokeAgentAsync(agent, threadArafat, "Load the sales_data.txt file and calculate the total revenue.");
 await InvokeAgentAsync(agent, threadArafat, "Plot a bar chart of total sales per product category.");
-// await InvokeAgentAsync(agent, threadArafat, "Find the top 3 best-selling products.");
 
 #!markdown
 
@@ -510,43 +509,11 @@ await InvokeAgentAsync(agent, threadEmployee, "Can I carry forward my unused lea
 
 #!markdown
 
-// Bing Search
-
-#!csharp
-
-#!import Helpers/AgentHelper.cs
-
-#pragma warning disable SKEXP0110, SKEXP0001, SKEXP0050
-
-Kernel travelAgentKernel = weatherAgentKernel.Clone();
-travelAgentKernel.Plugins.Clear();
-travelAgentKernel.ImportPluginFromType<TimePlugin>();
-
-
-// Define the agent
-Agent definition = await agentsClient.CreateAgentAsync(
-    "gpt-4o",
-    "TourGuideAgent",
-    "Tour Guide Agent responsible for providing travel suggestions based on the weather",
-    "You are an agent responsible for suggesting activities and creating an itinerary for a given location with respect to the weather. Do not tell anything other than the travel plans. Your travel plans should not be more than 2 activities..");
-
-AzureAIAgent travelAgent = new(definition, agentsClient) { Kernel = travelAgentKernel };
-
-// Creating metadata for the thread
-Dictionary<string,string> metadata = new Dictionary<string,string>() {
-    {"uniqueId", "customer_Arafat"}
-};
-
-// Create a thread for the agent conversation.
-Microsoft.SemanticKernel.Agents.AgentThread thread = new AzureAIAgentThread(agentsClient, metadata: metadata);
-
-await InvokeAgentAsync(travelAgent, thread, $"I'm planning to spend a day in Seattle tomorrow. Can you help me plan my day? The weather would be around {weatherInfo.Message.Content}.");
-
-#!markdown
+## 🏢 Customer Service Top Performer 
 
 A Customer Service Insights Agent helps call centers, retail businesses, and support teams improve customer experience by analyzing internal support data, retrieving past cases, and fetching external best practices from the web. It utilizes:
 
-- Code Interpreter – Analyzes customer complaint logs, agent performance metrics, and resolution times from CSV/PDF reports.
+- Code Interpreter – Analyses customer complaint logs, agent performance metrics, and resolution times from PDF reports.
 - File Search – Retrieves relevant company policies, troubleshooting guides, and historical customer interactions.
 - Bing Search – Fetches the latest customer service trends, industry best practices, and competitor benchmarks.
 

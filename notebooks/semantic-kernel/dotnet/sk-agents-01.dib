@@ -54,7 +54,7 @@ var builder = Kernel.CreateBuilder();
 builder.AddAzureOpenAIChatCompletion("gpt-4", azureOpenAIEndpoint, azureOpenAIKey, "gpt-4-service");   
 
 #pragma warning disable SKEXP0070
-builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-1.5-flash-latest", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1_Beta, serviceId: "gemini-service");
+builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-2.0-flash", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1_Beta, serviceId: "gemini-service");
 
 //Uri ollamaUri = new Uri(ollamaEndpoint);
 // builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:11434"), "ollama-service");
@@ -120,7 +120,7 @@ ChatCompletionAgent foodAgent =
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
             { 
-               ServiceId = "gpt-4-service",
+               ServiceId = "gemini-service",
                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             })
     };
