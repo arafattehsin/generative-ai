@@ -36,12 +36,7 @@ namespace CustomCopilot.Plugins.PlaceSuggestions
 
             FeaturesItem locationDetails = searchResult!.Value.Features.First();
 
-            string url = @$"https://atlas.microsoft.com/search/fuzzy/json?api-version=1.0&query={placeType}
-                    &subscription-key={APIKey}
-                    &lat={locationDetails.Geometry.Coordinates.Latitude}
-                    &lon={locationDetails.Geometry.Coordinates.Longitude}
-                    &countrySet=AU
-                    &language=en-AU";
+            string url = @$"https://atlas.microsoft.com/search/fuzzy/json?api-version=1.0&query={placeType}&subscription-key={APIKey}&lat={locationDetails.Geometry.Coordinates.Latitude}&lon={locationDetails.Geometry.Coordinates.Longitude}&countrySet=AU&language=en-AU";
 
             HttpResponseMessage response = await httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
