@@ -18,7 +18,7 @@ namespace CustomCopilot
         {
             // Create a kernel with the Azure OpenAI chat completion service
             var builder = Kernel.CreateBuilder();
-            builder.AddAzureOpenAIChatCompletion("gpt-4",
+            builder.AddAzureOpenAIChatCompletion("gpt-4o",
                 GetEnvironmentVariable("AOI_ENDPOINT_SWDN")!,
                 GetEnvironmentVariable("AOI_KEY_SWDN")!);
 
