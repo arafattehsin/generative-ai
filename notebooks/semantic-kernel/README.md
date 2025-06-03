@@ -1,4 +1,4 @@
-# Semantic Kernel Agent Framework & Azure AI Agent Service
+# Semantic Kernel Agent Framework & Azure AI Foundry Agent Service
 This folder contains a .NET based notebooks showcasing how to integrate with [Microsoft Semantic Kernel](https://github.com/microsoft/semantic-kernel) from the scratch. It provides various helpers, plugins and notebooks to help you quickly get started with building AI-driven applications with the enterprises using .NET ecosystem.
 
 `Disclaimer: The documentation has been modified using AI with the latest Agent mode in GitHub Copilot.`
