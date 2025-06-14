@@ -21,7 +21,6 @@ The assumption is that you're already equipped with the information on how to wo
 string azureOpenAIKey = Environment.GetEnvironmentVariable("AOI_KEY_SWDN");
 string azureOpenAIEndpoint = Environment.GetEnvironmentVariable("AOI_ENDPOINT_SWDN");
 string googleGeminiAPIKey = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_KEY");
-string ollamaEndpoint = "http://localhost:11434";
 
 #!markdown
 
@@ -31,13 +30,17 @@ _I will leave this example for you to create at the end._ 😉
 
 #!csharp
 
-// Getting the latest package released on Oct, 2024 - https://www.nuget.org/packages/Microsoft.SemanticKernel/
+// Getting the latest package released on May, 2025 - https://www.nuget.org/packages/Microsoft.SemanticKernel/
 #r "nuget: Microsoft.SemanticKernel, *-*"
 #r "nuget: Microsoft.SemanticKernel.Connectors.Google, *-*"
 #r "nuget: Microsoft.SemanticKernel.Plugins.Core,*-*"
 #r "nuget: Microsoft.SemanticKernel.Agents.Core, *-*"
+#r "nuget: Microsoft.SemanticKernel.Agents.Orchestration, *-*"
+#r "nuget: Microsoft.SemanticKernel.Agents.Runtime.InProcess, *-*"
 #r "nuget: Microsoft.SemanticKernel.Agents.OpenAI, *-*"
-#r "nuget: Microsoft.SemanticKernel.Connectors.Ollama, 1.28.0-alpha"
+#r "nuget: Microsoft.SemanticKernel.Connectors.Onnx, *-*"
+#r "nuget: Microsoft.SemanticKernel.Connectors.Ollama, *-*"
+#r "nuget: Microsoft.SemanticKernel.Connectors.AzureOpenAI, *-*"
 
 #!import Helpers/Settings.cs
 
@@ -45,19 +48,137 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Plugins.Core;
 using Microsoft.SemanticKernel.Connectors.Google;
 using Microsoft.SemanticKernel.Connectors.Ollama;
+using Microsoft.SemanticKernel.Connectors.Onnx;
 using Kernel = Microsoft.SemanticKernel.Kernel;
 using Microsoft.Extensions.DependencyInjection;
 
+
 //Create Kernel builder
 var builder = Kernel.CreateBuilder();
-
-builder.AddAzureOpenAIChatCompletion("gpt-4", azureOpenAIEndpoint, azureOpenAIKey, "gpt-4-service");   
+builder.AddAzureOpenAIChatCompletion("gpt-4o", azureOpenAIEndpoint, azureOpenAIKey, "gpt-4o-service");   
 
 #pragma warning disable SKEXP0070
 builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-2.0-flash", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1_Beta, serviceId: "gemini-service");
 
-//Uri ollamaUri = new Uri(ollamaEndpoint);
-// builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:11434"), "ollama-service");
+//builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:5273"), "ollama-service");
+builder.AddOpenAIChatCompletion("Phi-4-mini-instruct-cuda-gpu", apiKey: "", endpoint: new Uri("http://localhost:5273/v1"), serviceId: "phi-4"); 
+
+#!markdown
+
+## Utility Functions for Agent Interaction 🧰
+
+This provides utility functions to streamline interactions with AI Agents. Key functionalities include serializing objects to JSON (AsJson), formatting and displaying agent chat messages (WriteAgentChatMessage), invoking agents with user input and processing responses (InvokeAgentAsync).
+
+This also contains an additional method for creating a kernel which will be used quite often below.
+
+#!csharp
+
+#pragma warning disable SKEXP0110
+#pragma warning disable SKEXP0001
+#pragma warning disable SKEXP0002
+
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.OpenAI;
+using Microsoft.SemanticKernel.ChatCompletion;
+using ChatTokenUsage = OpenAI.Chat.ChatTokenUsage;
+using System.Text.Json;
+
+    private static readonly JsonSerializerOptions s_jsonOptionsCache = new() { WriteIndented = true };
+
+    public static string AsJson(this object obj)
+    {
+        return JsonSerializer.Serialize(obj, s_jsonOptionsCache);
+    }
+
+    protected static void WriteAgentChatMessage(ChatMessageContent message)
+    {
+        // Include ChatMessageContent.AuthorName in output, if present.
+        string authorExpression = message.Role == AuthorRole.User ? string.Empty : $" - {message.AuthorName ?? "*"}";
+        // Include TextContent (via ChatMessageContent.Content), if present.
+        string contentExpression = string.IsNullOrWhiteSpace(message.Content) ? string.Empty : message.Content;
+        bool isCode = message.Metadata?.ContainsKey(OpenAIAssistantAgent.CodeInterpreterMetadataKey) ?? false;
+        string codeMarker = isCode ? "\n  [CODE]\n" : " ";
+        Console.WriteLine($"\n# {message.Role}{authorExpression}:{codeMarker}{contentExpression}");
+
+        // Provide visibility for inner content (that isn't TextContent).
+        foreach (KernelContent item in message.Items)
+        {
+            if (item is AnnotationContent annotation)
+            {
+                Console.WriteLine($"  [{item.GetType().Name}] {annotation.Quote}: File #{annotation.FileId}");
+            }
+            else if (item is FileReferenceContent fileReference)
+            {
+                Console.WriteLine($"  [{item.GetType().Name}] File #{fileReference.FileId}");
+            }
+            else if (item is ImageContent image)
+            {
+                Console.WriteLine($"  [{item.GetType().Name}] {image.Uri?.ToString() ?? image.DataUri ?? $"{image.Data?.Length} bytes"}");
+            }
+            else if (item is FunctionCallContent functionCall)
+            {
+                Console.WriteLine($"  [{item.GetType().Name}] {functionCall.Id}");
+            }
+            else if (item is FunctionResultContent functionResult)
+            {
+                Console.WriteLine($"  [{item.GetType().Name}] {functionResult.CallId} - {functionResult.Result?.AsJson() ?? "*"}");
+            }
+        }
+
+        if (message.Metadata?.TryGetValue("Usage", out object? usage) ?? false)
+        {
+            if (usage is ChatTokenUsage agentUsage)
+            {
+                WriteUsage(agentUsage.TotalTokenCount, agentUsage.InputTokenCount, agentUsage.OutputTokenCount);
+            }
+
+        }
+
+        void WriteUsage(long totalTokens, long inputTokens, long outputTokens)
+        {
+            Console.WriteLine($"  [Usage] Tokens: {totalTokens}, Input: {inputTokens}, Output: {outputTokens}");
+        }
+    }
+
+    async static Task InvokeAgentAsync(string input, ChatCompletionAgent agent, ChatHistoryAgentThread chat)
+    {
+        ChatMessageContent message = new(AuthorRole.User, input);
+        WriteAgentChatMessage(message);
+
+        await foreach (ChatMessageContent response in agent.InvokeAsync(message))
+        {
+            WriteAgentChatMessage(response);
+        }
+    }
+
+    public Kernel CreateKernelWithChatCompletion()
+    {
+        //Create Kernel builder
+        var builder = Kernel.CreateBuilder();
+
+        builder.AddAzureOpenAIChatCompletion("gpt-4o", azureOpenAIEndpoint, azureOpenAIKey, "gpt-4o-service");
+
+#pragma warning disable SKEXP0070
+        builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-2.0-flash", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1_Beta, serviceId: "gemini-service");
+
+        
+        //builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:11434"), "ollama-service");
+        //builder.AddOpenAIChatCompletion("Phi-4-mini-instruct-cuda-gpu", apiKey: "", endpoint: new Uri("http://localhost:5273/v1"), serviceId: "phi-4"); 
+
+        return builder.Build();
+    }
+
+protected sealed class OrchestrationMonitor
+{
+    public ChatHistory History { get; } = [];
+
+    public ValueTask ResponseCallback(ChatMessageContent response)
+    {
+        this.History.Add(response);
+        return ValueTask.CompletedTask;
+    }
+}
 
 #!markdown
 
@@ -85,14 +206,14 @@ ChatCompletionAgent weatherAgent =
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
             { 
-               ServiceId = "gpt-4-service",
+               ServiceId = "gpt-4o-service",
             })
     };
 
 // Create a ChatHistory object to maintain the conversation state.
-ChatHistory chat = [];
+ChatHistoryAgentThread agentThread  = new();
 
-await GettingStarted.InvokeAgentAsync("What is the weather in Seattle?", weatherAgent, chat);
+await InvokeAgentAsync("What is the weather in Seattle?", weatherAgent, agentThread);
 
 #!markdown
 
@@ -109,26 +230,26 @@ When you ask, “What should I eat right now?” 🥘, `InvokeAgentAsync` sends 
 Kernel foodAgentKernel = weatherAgentKernel.Clone();
 foodAgentKernel.Plugins.Clear();
 foodAgentKernel.ImportPluginFromType<TimePlugin>();
-foodAgentKernel.ImportPluginFromPromptDirectory("plugins/FoodPlugin");
+foodAgentKernel.ImportPluginFromPromptDirectory("../Plugins/FoodPlugin");
 
 ChatCompletionAgent foodAgent =
     new()
     {
         Name = "FoodAgent",
-        Instructions = "You are an agent responsible for suggestion of the food option depending upon the weather and time of the day. You need to make sure that you suggest something halal or vegetarian.",
+        Instructions = "You are an agent responsible for suggestion of the food option depending upon the weather and time of the day. You need to make sure that you suggest something vegetarian.",
         Kernel = foodAgentKernel,
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
             { 
-               ServiceId = "gemini-service",
+               ServiceId = "phi-4",
                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             })
     };
 
 // Create a ChatHistory object to maintain the conversation state.
-ChatHistory chat = [];
+ChatHistoryAgentThread agentThread = new();
 
-await GettingStarted.InvokeAgentAsync("What should I eat right now? Also, whatever the dish you plan, can you please tell me the recipe of that too?", foodAgent, chat);
+await InvokeAgentAsync("What should I eat right now? Also, whatever the dish you plan, can you please tell me the recipe of that too?", foodAgent, agentThread);
 
 #!markdown
 
@@ -140,7 +261,7 @@ Then, we have the **Budget Advisor Agent**, who acts as the financial guardian �
 
 #!csharp
 
-#!import Plugins/BudgetAdvisor/BudgetAdvisor.cs
+#!import /Users/AT/source/repos/generative-ai/notebooks/semantic-kernel/Plugins/BudgetAdvisor/BudgetAdvisor.cs
 
 #pragma warning disable SKEXP0110, SKEXP0001, SKEXP0050
 using System.Threading;
@@ -149,21 +270,25 @@ using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.Agents.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
+using Microsoft.SemanticKernel.Agents.Orchestration;
 
-// Import the BudgetPlanner plugin
-GettingStarted common = new();
-Kernel travelPlannerKenrel = common.CreateKernelWithChatCompletion();
+Kernel travelPlannerKenrel = CreateKernelWithChatCompletion();
+int ResultTimeoutInSeconds = 30;
 
 // Create the Travel Planner Agent
 var travelPlannerAgent = new ChatCompletionAgent
 {
     Name = "TravelPlanner",
+    Description = "Travel Planner Agent",
     Instructions = "You create detailed travel itineraries based on user preferences. You are very concise, to the point and does not waste time in explaining things in detail. At the end of each plan, you also calculate your total and make sure you provide reasoning of that total budget. Consider suggestions when revising the travel plan.",
     Kernel = travelPlannerKenrel,
     Arguments = new KernelArguments(
         new OpenAIPromptExecutionSettings
         {
-            ServiceId = "gpt-4-service",
+            ServiceId = "gpt-4o-service",
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
         }
     )
 };
@@ -175,6 +300,7 @@ budgetAdvisorKernel.ImportPluginFromObject(new BudgetAdvisor());
 var budgetAdvisorAgent = new ChatCompletionAgent
 {
     Name = "BudgetAdvisor",
+    Description = "Budget Advisor Agent",
     Instructions = "You analyse travel plans and suggest adjustments to fit within the total cost. Your goal is to ensure that the user's travel plans are financially feasible and not beyond the total cost. If they are not within the range, provide feedback and reject the plan with no. If it is within a range then approve it with a yes.",
     Kernel = budgetAdvisorKernel,
     Arguments = new KernelArguments(
@@ -186,49 +312,57 @@ var budgetAdvisorAgent = new ChatCompletionAgent
     )
 };
 
-// Create the AgentGroupChat with the agents and strategies
-var chat = new AgentGroupChat(travelPlannerAgent, budgetAdvisorAgent)
-{
-    ExecutionSettings =
-             new()
-             {
-                //  // Here a KernelFunctionSelectionStrategy selects agents based on a prompt function.
-                  SelectionStrategy = new SequentialSelectionStrategy(),
-                     
-                      // Here KernelFunctionTerminationStrategy will terminate
-                 // when the concierge agent has given their approval.
-                 TerminationStrategy = 
-                                new ApprovalTerminationStrategy()
-                {
-                    // Only the art-director may approve.
-                    Agents = [budgetAdvisorAgent],
-                    // Limit total number of turns
-                    MaximumIterations = 10,
-                }
-                     
-             }
-};
+// NOTE: Create your own callback to capture responses in your application or service.
+OrchestrationMonitor monitor = new();
 
-// User input to start the conversation
-var userMessage = new ChatMessageContent(AuthorRole.User, "I want to plan a trip to Japan for 6 days, staying in hotels. My budget is $1200.");
-chat.AddChatMessage(userMessage);
+// Create a GroupChatOrchestration to manage the conversation between the agents
+var chat = new GroupChatOrchestration(
+    new ApprovalTerminationStrategy(budgetAdvisorAgent.Name)
+    {
+        MaximumInvocationCount = 10
+    },
+    travelPlannerAgent,
+    budgetAdvisorAgent)
+    {
+    ResponseCallback = monitor.ResponseCallback
+    };
 
-// Invoke the chat and display the conversation
-await foreach (var response in chat.InvokeAsync())
+InProcessRuntime runtime = new();
+await runtime.StartAsync();
+
+string input = "I want to plan a trip to Japan for 6 days, staying in hotels. My budget is $1200.";
+Console.WriteLine($"\n# INPUT: {input}\n");
+OrchestrationResult<string> result = await chat.InvokeAsync(input, runtime);
+string text = await result.GetValueAsync(TimeSpan.FromSeconds(ResultTimeoutInSeconds * 3));
+Console.WriteLine($"\n# RESULT: {text}");
+
+//await runtime.RunUntilIdleAsync();
+
+ Console.WriteLine("\n\nORCHESTRATION HISTORY");
+ foreach (ChatMessageContent message in monitor.History)
+ {
+     WriteAgentChatMessage(message);
+ }
+
+private sealed class ApprovalTerminationStrategy : RoundRobinGroupChatManager
 {
-    var authorExpression = response.Role == AuthorRole.User ? string.Empty : $" - {response.AuthorName}";
-    var contentExpression = string.IsNullOrWhiteSpace(response.Content) ? string.Empty : response.Content;
-    Console.WriteLine($"\n# {response.Role}{authorExpression}: {contentExpression}");
+private readonly string _approverName;
+public ApprovalTerminationStrategy(string approverName)
+{
+    _approverName = approverName;
 }
 
-Console.WriteLine($"\n[CONVERSATION COMPLETED: {chat.IsComplete}]");
-
- private sealed class ApprovalTerminationStrategy : TerminationStrategy
- {
-     // Terminate when the final message contains the term "approve"
-     protected override Task<bool> ShouldAgentTerminateAsync(Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
-         => Task.FromResult(history[history.Count - 1].Content?.Contains("yes", StringComparison.OrdinalIgnoreCase) ?? false);
- }
+public override ValueTask<GroupChatManagerResult<bool>> ShouldTerminate(ChatHistory history, CancellationToken cancellationToken = default)
+{
+    var last = history.LastOrDefault();
+    bool shouldTerminate = last?.AuthorName == _approverName &&
+        last.Content?.Contains("yes", StringComparison.OrdinalIgnoreCase) == true;
+    return ValueTask.FromResult(new GroupChatManagerResult<bool>(shouldTerminate)
+    {
+        Reason = shouldTerminate ? "Approved by reviewer." : "Not yet approved."
+    });
+}
+}
 
 #!markdown
 
@@ -242,7 +376,6 @@ With this setup, you can chat with the system, asking for a day plan in any city
 
 #!csharp
 
-#!import Helpers/GettingStarted.cs
 #!import Helpers/JsonResultTranslator.cs
 
 #pragma warning disable SKEXP0110, SKEXP0001, SKEXP0010
@@ -252,14 +385,14 @@ using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.Agents.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using System.Text.Json;
 
 public record OuterTerminationResult(bool isApproved, string reason);
 
 public record AgentSelectionResult(string name, string reason);
 
-GettingStarted common = new();
 
-Kernel weatherAgentKernel = common.CreateKernelWithChatCompletion();
+Kernel weatherAgentKernel = CreateKernelWithChatCompletion();
 
 ChatCompletionAgent weatherAgent =
     new()
@@ -270,14 +403,14 @@ ChatCompletionAgent weatherAgent =
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
             { 
-               ServiceId = "gpt-4-service",
+               ServiceId = "gpt-4o-service",
             })
     };
 
     
 // Food Agent     
-Kernel foodAgentKernel = common.CreateKernelWithChatCompletion();
-foodAgentKernel.ImportPluginFromPromptDirectory("Plugins/FoodPlugin");
+Kernel foodAgentKernel = CreateKernelWithChatCompletion();
+foodAgentKernel.ImportPluginFromPromptDirectory("../Plugins/FoodPlugin");
 
 ChatCompletionAgent foodAgent =
     new()
@@ -288,14 +421,14 @@ ChatCompletionAgent foodAgent =
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
             { 
-               ServiceId = "gpt-4-service",
+               ServiceId = "gpt-4o-service",
                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             })
     };
 
 
 // Travel Agent to recommend activities and creates an itinerary
-Kernel travelAgentKernel = common.CreateKernelWithChatCompletion();
+Kernel travelAgentKernel = CreateKernelWithChatCompletion();
 
 ChatCompletionAgent travelAgent =
     new()
@@ -306,12 +439,12 @@ ChatCompletionAgent travelAgent =
         Arguments = new KernelArguments(
              new OpenAIPromptExecutionSettings() 
              { 
-                ServiceId = "gpt-4-service",
+                ServiceId = "gpt-4o-service",
              })
     };
 
 // Concierge Agent to personally review and optimize the plan
-Kernel conciergeAgentKernel = common.CreateKernelWithChatCompletion();
+Kernel conciergeAgentKernel = CreateKernelWithChatCompletion();
 
 ChatCompletionAgent conciergeAgent =
     new()
@@ -326,7 +459,7 @@ ChatCompletionAgent conciergeAgent =
         Arguments = new KernelArguments(
             new OpenAIPromptExecutionSettings() 
             { 
-               ServiceId = "gpt-4-service",
+               ServiceId = "gpt-4o-service",
             })
     };
 
@@ -389,7 +522,7 @@ ChatHistoryTruncationReducer strategyReducer = new(5);
              {
                 //  // Here a KernelFunctionSelectionStrategy selects agents based on a prompt function.
                   SelectionStrategy =
-                      new KernelFunctionSelectionStrategy(selectionFunction, common.CreateKernelWithChatCompletion())
+                      new KernelFunctionSelectionStrategy(selectionFunction, CreateKernelWithChatCompletion())
                       {
                           // Always start with the weather agent
                           InitialAgent = weatherAgent,
@@ -412,7 +545,7 @@ ChatHistoryTruncationReducer strategyReducer = new(5);
                       // Here KernelFunctionTerminationStrategy will terminate
                  // when the concierge agent has given their approval.
                  TerminationStrategy =
-                     new KernelFunctionTerminationStrategy(terminationFunction, common.CreateKernelWithChatCompletion())
+                     new KernelFunctionTerminationStrategy(terminationFunction, CreateKernelWithChatCompletion())
                      {
                          // Only the concierge agent may approve.
                          Agents = [conciergeAgent],
@@ -439,15 +572,17 @@ ChatHistoryTruncationReducer strategyReducer = new(5);
  ChatMessageContent input = new(AuthorRole.User, "I'm planning to spend a day in Seattle tomorrow. Can you help me plan my day? I need to know about the weather, food options, and activities I can do.");
  chat.AddChatMessage(input);
 
-await foreach (ChatMessageContent response in chat.InvokeAsync())
-{
-     // Include ChatMessageContent.AuthorName in output, if present.
+ await foreach (ChatMessageContent response in chat.InvokeAsync())
+ {
+    // Include ChatMessageContent.AuthorName in output, if present.
     string authorExpression = response.Role == AuthorRole.User ? string.Empty : $" - {response.AuthorName ?? "*"}";
- // Include TextContent (via ChatMessageContent.Content), if present.
+    // Include TextContent (via ChatMessageContent.Content), if present.
     string contentExpression = string.IsNullOrWhiteSpace(response.Content) ? string.Empty : response.Content;
     bool isCode = response.Metadata?.ContainsKey(OpenAIAssistantAgent.CodeInterpreterMetadataKey) ?? false;
     string codeMarker = isCode ? "\n  [CODE]\n" : " ";
     Console.WriteLine($"\n# {response.Role}{authorExpression}:{codeMarker}{contentExpression}");
-}
+ }
+
+
 
 Console.WriteLine($"\n[IS COMPLETED: {chat.IsComplete}]");

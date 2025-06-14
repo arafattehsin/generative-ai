@@ -4,7 +4,7 @@
 
 #!markdown
 
-# 🧙‍♂️ Build Personalised Experiences with Azure AI Agent Service (Intermediate)
+# 🧙‍♂️ Build Personalised Experiences with Azure AI Foundry Agent Service (Intermediate)
 
 `Author: Arafat Tehsin`
 
@@ -24,7 +24,7 @@ Over here, I am trying to get a connection string of an AI Project which I have 
 
 #!csharp
 
-string azureAIAgentConnectionString = Environment.GetEnvironmentVariable("AZUREA_AGENT_CONNECTONSTRING");
+string azureFoundryProjectEndpoint = "https://aifoundry-agents-resource.services.ai.azure.com/api/projects/aifoundry-agents";
 
 #!markdown
 
@@ -43,9 +43,9 @@ For more information on this, check out the official [C# tutorial on Azure AI Ag
 #r "nuget: Microsoft.SemanticKernel.Agents.Abstractions,*-*"
 #r "nuget: Microsoft.SemanticKernel.Agents.Core, *-*"
 #r "nuget: Microsoft.SemanticKernel.Agents.OpenAI, *-*"
-#r "nuget: Azure.AI.Projects, *-*"
+#r "nuget: Azure.AI.Agents.Persistent, *-*"
 #r "nuget: Microsoft.SemanticKernel.Agents.AzureAI, *-*"
-#r "nuget: Azure.Identity, *-*"
+#r "nuget: Azure.Identity, 1.13.2"
 
 #pragma warning disable SKEXP0110
 
@@ -55,26 +55,26 @@ using Kernel = Microsoft.SemanticKernel.Kernel;
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.Agents;
 using Azure.AI.Projects;
-using Agent = Azure.AI.Projects.Agent;
 using Azure.Identity;
 
 //Create Kernel builder
 var builder = Kernel.CreateBuilder();
 
-var client = AzureAIAgent.CreateAzureAIClient(azureAIAgentConnectionString, new AzureCliCredential());
-AgentsClient agentsClient = client.GetAgentsClient();
+var agentsClient = AzureAIAgent.CreateAgentsClient(azureFoundryProjectEndpoint, new AzureCliCredential());
+
+// client.Administration.Display();
 
 // Get all the agents and threads and delete them
-var agents = agentsClient.GetAgents().Value.ToList();
-foreach (var agent in agents)
+var agentsList = agentsClient.Administration.GetAgents();
+foreach (var agent in agentsList)
 {
-    Console.WriteLine($"Deleting agent {agent.Id}");
-    agentsClient.DeleteAgent(agent.Id);                                                                                                                                                                                 
-}
+     Console.WriteLine($"Deleting agent {agent.Id}");
+    agentsClient.Administration.DeleteAgent(agent.Id);
+ }
 
 #!markdown
 
-## 🧰 Utility Functions for Agent Interaction 
+## 🧰 Utility Functions for Agent Interaction
 
 This cell provides utility functions to streamline interactions with Azure AI Agents. Key functionalities include serializing objects to JSON (AsJson), formatting and displaying agent chat messages (WriteAgentChatMessage), invoking agents with user input and processing responses (InvokeAgentAsync), and creating or retrieving user-specific threads for conversations (CreateUserThreadAsync). These utilities enhance readability, manage user sessions, and simplify agent communication.
 
@@ -91,6 +91,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Azure.AI.Agents.Persistent;
 using System.Text.Json;
 
 private static readonly JsonSerializerOptions s_jsonOptionsCache = new() { WriteIndented = true };
@@ -149,7 +150,7 @@ protected void WriteAgentChatMessage(ChatMessageContent message)
     }
 }
 
-async Task<Microsoft.SemanticKernel.Agents.AgentThread> CreateUserThreadAsync(Dictionary<string,string> userMetadata, string userName)
+Microsoft.SemanticKernel.Agents.AzureAI.AzureAIAgentThread CreateUserThreadAsync(Dictionary<string,string> userMetadata, string userName)
 {
     string userKey = $"{userName}";
     if (!userMetadata.ContainsKey(userKey))
@@ -164,7 +165,7 @@ async Task<Microsoft.SemanticKernel.Agents.AgentThread> CreateUserThreadAsync(Di
 }
 
 
-async Task InvokeAgentAsync(AzureAIAgent agent, Microsoft.SemanticKernel.Agents.AgentThread thread, string input)
+async Task InvokeAgentAsync(AzureAIAgent agent, AzureAIAgentThread thread, string input)
 {
     ChatMessageContent message = new(AuthorRole.User, input);
     WriteAgentChatMessage(message);
@@ -187,15 +188,15 @@ Imagine you have a digital weather expert in your pocket. One that never sleeps,
 
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Azure.AI.Projects;
-using Agent = Azure.AI.Projects.Agent;
+using Azure.AI.Agents.Persistent;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Agents;
 
 Kernel weatherAgentKernel = builder.Build();
 
 // Define the agent
-Agent definition = await agentsClient.CreateAgentAsync(
-    "gpt-4o",
+PersistentAgent definition = await agentsClient.Administration.CreateAgentAsync(
+    "gpt-4.1",
     "WeatherAgent",
     "Weather Agent responsible for providing weather information in a JSON schema",
     "You are an agent designed to query and retrieve information about the weather of a given location. If you have been asked to provide information about two distinguish locations then you need to get the information appropriately. For now, just make it up, you do not have to call any service. Provide your response in the following JSON schema: {\"location\": \"\", \"temperature\": \"\", \"humidity\": \"\"}" 
@@ -209,7 +210,7 @@ Dictionary<string,string> metadata = new Dictionary<string,string>() {
 };
 
 // Create a thread for the agent conversation.
-Microsoft.SemanticKernel.Agents.AgentThread thread = new AzureAIAgentThread(agentsClient, metadata: metadata);
+AzureAIAgentThread thread = new AzureAIAgentThread(agentsClient, metadata: metadata);
 
 // await InvokeAgentAsync(weatherAgent, thread, "What's the weather of Sydney right now?");
 var response = weatherAgent.InvokeAsync(new ChatMessageContent(AuthorRole.User, "What's the weather of Sydney right now?"), thread);
@@ -240,15 +241,14 @@ Imagine walking into your favorite restaurant where the server already knows you
 #pragma warning disable SKEXP0110
 
 using Microsoft.SemanticKernel.Agents.AzureAI;
-using Azure.AI.Projects;
-using Agent = Azure.AI.Projects.Agent;
 using Microsoft.SemanticKernel.Agents;
+using Azure.AI.Agents.Persistent;
 
 Kernel foodOrderKernel = builder.Build();
 
 // Define the Food Ordering Agent
-Agent definition = await agentsClient.CreateAgentAsync(
-    "gpt-4o",
+PersistentAgent definition = await agentsClient.Administration.CreateAgentAsync(
+    "gpt-4.1",
     "FoodOrderAgent",
     "An AI-powered food ordering assistant that remembers user preferences",
     "You are a food ordering assistant. Remember previous orders from users and suggest their usual choices when they return. If they want something new, update their preferences accordingly.");
@@ -267,13 +267,13 @@ Dictionary<string, string> userMetadata = new()
 // Simulate Multiple Interactions for two customers
 
 // Customer 1: Arafat
-var threadArafat = await CreateUserThreadAsync(userMetadata, "Arafat");
+var threadArafat = CreateUserThreadAsync(userMetadata, "Arafat");
 await InvokeAgentAsync(foodOrderAgent, threadArafat, "I’d like to order a cheeseburger and fries.");  // First order
 await InvokeAgentAsync(foodOrderAgent, threadArafat, "I’d like to order food.");                      // Should suggest previous order
 await InvokeAgentAsync(foodOrderAgent, threadArafat, "I feel like trying something new today.");      // Suggests a new item
 
 // Customer 2: Maryam
-var threadMaryam = await CreateUserThreadAsync(userMetadata, "Maryam");
+var threadMaryam = CreateUserThreadAsync(userMetadata, "Maryam");
 await InvokeAgentAsync(foodOrderAgent, threadMaryam, "I’d like a grilled chicken salad.");            // First order
 await InvokeAgentAsync(foodOrderAgent, threadMaryam, "I’d like to order my usual salad.");           // Should suggest past order
 await InvokeAgentAsync(foodOrderAgent, threadMaryam, "I need something lighter today.");             // Suggests a healthier option
@@ -289,16 +289,15 @@ Imagine you're a financial analyst who just received a massive spreadsheet of sa
 #pragma warning disable SKEXP0110
 
 using Microsoft.SemanticKernel.Agents.AzureAI;
-using Azure.AI.Projects;
-using Agent = Azure.AI.Projects.Agent;
+using Azure.AI.Agents.Persistent;
 using Microsoft.SemanticKernel.Agents;
 
 Kernel codeAgentKernel = builder.Build();
 
 // Getting the Resources
-string filePath = "Resources/sales_data.txt"; 
+string filePath = "../Resources/sales_data.txt"; 
 
-AgentFile fileInfo = await agentsClient.UploadFileAsync(filePath, AgentFilePurpose.Agents);
+PersistentAgentFileInfo fileInfo = await agentsClient.Files.UploadFileAsync(filePath, PersistentAgentFilePurpose.Agents);
 
 // Check if the file is uploaded successfully
 if (fileInfo == null || string.IsNullOrEmpty(fileInfo.Id))
@@ -309,7 +308,7 @@ if (fileInfo == null || string.IsNullOrEmpty(fileInfo.Id))
  
 // Create a vector store with the file and wait for it to be processed.
 // If you do not specify a vector store, create_message will create a vector store with a default expiration policy of seven days after they were last active
-VectorStore vectorStore = await agentsClient.CreateVectorStoreAsync(
+PersistentAgentsVectorStore  vectorStore = await agentsClient.VectorStores.CreateVectorStoreAsync(
     fileIds:  new List<string> { fileInfo.Id },
     name: "sales_data");
 
@@ -319,8 +318,8 @@ CodeInterpreterToolResource codeInterpreterToolResource = new()
 };
 
 // Define the Code Interpreter Agent
-Agent definition = await agentsClient.CreateAgentAsync(
-    "gpt-4o",
+PersistentAgent definition = await agentsClient.Administration.CreateAgentAsync(
+    "gpt-4.1",
     "CodeInterpreterAgent",
     "An AI-powered code execution assistant",
     "You are a code interpreter agent capable of running Python code. Users can provide CSV files, and you will process, analyze, and visualize the data.",
@@ -344,7 +343,7 @@ Dictionary<string, string> userMetadata = new()
 // Simulate User Interactions for Code Execution
 
 // User: Arafat (Analyzing Sales Data)
-var threadArafat = await CreateUserThreadAsync(userMetadata, "Arafat");
+AzureAIAgentThread threadArafat = CreateUserThreadAsync(userMetadata, "Arafat");
 await InvokeAgentAsync(agent, threadArafat, "Load the sales_data.txt file and calculate the total revenue.");
 await InvokeAgentAsync(agent, threadArafat, "Plot a bar chart of total sales per product category.");
 
@@ -354,7 +353,7 @@ So this script helps businesses analyze product category sales, making it easier
 
 #!pythonkernel
 
-##!connect jupyter --kernel-name pythonkernel --kernel-spec python3
+#!connect jupyter --kernel-name pythonkernel --kernel-spec python3
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -392,14 +391,14 @@ Managing employee attendance is a crucial task for HR professionals. Instead of 
 
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Azure.AI.Projects;
-using Agent = Azure.AI.Projects.Agent;
+using Azure.AI.Agents.Persistent;
 using Microsoft.SemanticKernel.Agents;
 
 Kernel hrAttendanceAgentKernel = builder.Build();
 
 // Upload the employee attendance data file
-string filePath = "Resources/Leave and Attendance Records.pdf";
-AgentFile fileInfo = await agentsClient.UploadFileAsync(filePath, AgentFilePurpose.Agents);
+string filePath = "../Resources/Leave and Attendance Records.pdf";
+PersistentAgentFileInfo fileInfo = await agentsClient.Files.UploadFileAsync(filePath, PersistentAgentFilePurpose.Agents);
 
 // Ensure file upload was successful
 if (fileInfo == null || string.IsNullOrEmpty(fileInfo.Id))
@@ -409,13 +408,13 @@ if (fileInfo == null || string.IsNullOrEmpty(fileInfo.Id))
 }
 
 // Create a vector store for attendance data search
-VectorStore vectorStore = await agentsClient.CreateVectorStoreAsync(
+PersistentAgentsVectorStore vectorStore = await agentsClient.VectorStores.CreateVectorStoreAsync(
     fileIds: new List<string> { fileInfo.Id },
     name: "EmployeeAttendanceSearch");
 
 // Define the HR Attendance Search Agent
-Agent definition = await agentsClient.CreateAgentAsync(
-    "gpt-4o",
+PersistentAgent definition = await agentsClient.Administration.CreateAgentAsync(
+    "gpt-4.1",
     "HRAttendanceSearchAgent",
     "An AI-powered assistant for HR to search employee attendance and leave data",
     "You are an HR assistant designed to search and retrieve relevant employee attendance information based on HR queries.",
@@ -438,7 +437,7 @@ Dictionary<string, string> userMetadata = new()
 AzureAIAgent agent = new(definition, agentsClient) { Kernel = hrAttendanceAgentKernel };
 
 // Simulate HR Query for Attendance Data
-var threadHR = await CreateUserThreadAsync(userMetadata, "HR Person");
+var threadHR = CreateUserThreadAsync(userMetadata, "HR Person");
 await InvokeAgentAsync(agent, threadHR, "Find the total number of leave days taken by Alice Brown this year.");
 await InvokeAgentAsync(agent, threadHR, "List employees with low attendance (below 80%) in the last 3 months.");
 await InvokeAgentAsync(agent, threadHR, "Which department has the highest absenteeism rate?");
@@ -455,14 +454,14 @@ Employees frequently have questions about company policies—whether it's matern
 
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Azure.AI.Projects;
-using Agent = Azure.AI.Projects.Agent;
+using Azure.AI.Agents.Persistent;
 using Microsoft.SemanticKernel.Agents;
 
 Kernel hrPolicyAgentKernel = builder.Build();
 
 // Upload the HR policies file
-string filePath = "Resources/HR Policies.md";
-AgentFile fileInfo = await agentsClient.UploadFileAsync(filePath, AgentFilePurpose.Agents);
+string filePath = "../Resources/HR Policies.md";
+PersistentAgentFileInfo fileInfo = await agentsClient.Files.UploadFileAsync(filePath, PersistentAgentFilePurpose.Agents);
 
 // Ensure file upload was successful
 if (fileInfo == null || string.IsNullOrEmpty(fileInfo.Id))
@@ -472,13 +471,13 @@ if (fileInfo == null || string.IsNullOrEmpty(fileInfo.Id))
 }
 
 // Create a vector store for HR policy search
-VectorStore vectorStore = await agentsClient.CreateVectorStoreAsync(
+PersistentAgentsVectorStore vectorStore = await agentsClient.VectorStores.CreateVectorStoreAsync(
     fileIds: new List<string> { fileInfo.Id },
     name: "HRPolicySearch");
 
 // Define the HR Policy Search Agent
-Agent definition = await agentsClient.CreateAgentAsync(
-    "gpt-4o",
+PersistentAgent definition = await agentsClient.Administration.CreateAgentAsync(
+    "gpt-4.1",
     "HRPolicySearchAgent",
     "An AI-powered assistant for employees to retrieve HR policy details",
     "You are an HR assistant designed to provide employees with answers regarding company policies on healthcare, leave, remote work, and retirement benefits.",
@@ -502,14 +501,14 @@ Dictionary<string, string> userMetadata = new()
 AzureAIAgent agent = new(definition, agentsClient) { Kernel = hrPolicyAgentKernel };
 
 // Simulate Employee Queries for HR Policies
-var threadEmployee = await CreateUserThreadAsync(userMetadata, "Arafat");
+var threadEmployee = CreateUserThreadAsync(userMetadata, "Arafat");
 await InvokeAgentAsync(agent, threadEmployee, "What are the maternity leave policies?");
 await InvokeAgentAsync(agent, threadEmployee, "Explain the company's retirement benefits plan.");
 await InvokeAgentAsync(agent, threadEmployee, "Can I carry forward my unused leave to next year?");
 
 #!markdown
 
-## 🏢 Customer Service Top Performer 
+## 🏢 Customer Service Top Performer
 
 A Customer Service Insights Agent helps call centers, retail businesses, and support teams improve customer experience by analyzing internal support data, retrieving past cases, and fetching external best practices from the web. It utilizes:
 
@@ -523,37 +522,39 @@ A Customer Service Insights Agent helps call centers, retail businesses, and sup
 
 using Microsoft.SemanticKernel.Agents.AzureAI;
 using Azure.AI.Projects;
-using Agent = Azure.AI.Projects.Agent;
+using Azure.AI.Agents.Persistent;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel;
 
 
-Kernel customerSupportAgentKernel = weatherAgentKernel.Clone();
+Kernel customerSupportAgentKernel = Kernel.CreateBuilder().Build();
 
-var client = AzureAIAgent.CreateAzureAIClient(azureAIAgentConnectionStringEnterprise, new AzureCliCredential());
-var bingConnection = await client.GetConnectionsClient().GetConnectionAsync("binggrounding");
-var connectionId = bingConnection.Value.Id;
-AgentsClient agentClient = client.GetAgentsClient();
+// string azureAIAgentProjectEnterpriseEndpoint = "https://aifoundry-enterprise-ag-resource.services.ai.azure.com/api/projects/aifoundry-enterprise-agents";
+AIProjectClient projectClient = new AIProjectClient(new Uri(azureFoundryProjectEndpoint), new AzureCliCredential());
+Connections bingConnectionClient = projectClient.GetConnectionsClient();
+Connection connection =
+    await bingConnectionClient.GetConnectionsAsync().Where(connection => connection.Name == "bing-grounding").FirstOrDefaultAsync() ??
+    throw new InvalidOperationException($"Connection '{"bing-grounding"}' not found in project '{azureFoundryProjectEndpoint}'.");
+var connectionId = connection.Id;
 
-ToolConnectionList connectionList = new ToolConnectionList
-{
-    ConnectionList = { new ToolConnection(connectionId) }
-};
+BingGroundingSearchConfiguration bingToolConfiguration = new(connectionId);
+BingGroundingSearchToolParameters bingToolParameters = new([bingToolConfiguration]);
 
+var agentsClient = AzureAIAgent.CreateAgentsClient(azureFoundryProjectEndpoint, new AzureCliCredential());
 
 // Upload the customer service data files
 string[] filePaths = {
-    "Resources/agent_performance_metrics.txt",
-    "Resources/historical_customer_interactions.txt",
-    "Resources/HiEnterprise Troubleshooting Guide.docx",
-    "Resources/Policy Document.pdf"
+    "../Resources/agent_performance_metrics.txt",
+    "../Resources/historical_customer_interactions.txt",
+    "../Resources/HiEnterprise Troubleshooting Guide.docx",
+    "../Resources/Policy Document.pdf"
 };
 
 List<string> uploadedFileIds = new();
 CodeInterpreterToolResource codeInterpreterToolResource = new();
 foreach (string filePath in filePaths)
 {
-    AgentFile fileInfo = await agentsClient.UploadFileAsync(filePath, AgentFilePurpose.Agents);
+    PersistentAgentFileInfo fileInfo = await agentsClient.Files.UploadFileAsync(filePath, PersistentAgentFilePurpose.Agents);
 
     if (fileInfo != null && !string.IsNullOrEmpty(fileInfo.Id))
     {
@@ -574,21 +575,21 @@ if (uploadedFileIds.Count == 0)
 }
 
 // Create a vector store for searching internal documents
-VectorStore vectorStore = await agentsClient.CreateVectorStoreAsync(
+PersistentAgentsVectorStore vectorStore = await agentsClient.VectorStores.CreateVectorStoreAsync(
     fileIds: uploadedFileIds,
     name: "CustomerServiceDocs");
 
 
 // Define the AI Customer Service Agent
-Agent definition = await agentsClient.CreateAgentAsync(
-    "gpt-4o",
+PersistentAgent definition = await agentsClient.Administration.CreateAgentAsync(
+    "gpt-4.1",
     "CustomerSupportAgent",
     "An AI-powered assistant for customer support",
     "You are a customer support AI assistant that helps analyze agent performance, search internal policies, and find best practices for efficient support handling.",
     tools: [
         new CodeInterpreterToolDefinition(),
         new FileSearchToolDefinition(),
-        new BingGroundingToolDefinition(connectionList)
+        new BingGroundingToolDefinition(bingToolParameters)
     ],
     toolResources: new()
     {
@@ -608,7 +609,7 @@ Dictionary<string, string> userMetadata = new()
 // Simulate User Interactions
 
 // Support Manager Analyzing Agent Performance
-var threadSupport = await CreateUserThreadAsync(userMetadata, "Support Manager");
+var threadSupport = CreateUserThreadAsync(userMetadata, "Support Manager");
 await InvokeAgentAsync(agent, threadSupport, "Load the agent_performance_metrics.csv file and generate insights on agent efficiency.");
 await InvokeAgentAsync(agent, threadSupport, "Find the top 3 agents with the best customer satisfaction scores.");
 await InvokeAgentAsync(agent, threadSupport, "Compare resolution times from resolution_times.txt and identify slowest response trends.");
