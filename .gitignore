@@ -49,3 +49,5 @@
 /notebooks/semantic-kernel/.vs/semantic-kernel/CopilotIndices/17.14.90.56529
 /notebooks/semantic-kernel/.vs/semantic-kernel/FileContentIndex
 /notebooks/semantic-kernel/.vs
+/.vscode
+/notebooks/.github
