@@ -1,4 +1,4 @@
-# Semantic Kernel Agent Framework & Azure AI Agent Service
+# Semantic Kernel Agent Framework & Azure AI Foundry Agent Service
 This folder contains a .NET based notebooks showcasing how to integrate with [Microsoft Semantic Kernel](https://github.com/microsoft/semantic-kernel) from the scratch. It provides various helpers, plugins and notebooks to help you quickly get started with building AI-driven applications with the enterprises using .NET ecosystem.
 
 `Disclaimer: The documentation has been modified using AI with the latest Agent mode in GitHub Copilot.`
@@ -24,7 +24,7 @@ This folder contains a .NET based notebooks showcasing how to integrate with [Mi
 
 Semantic Kernel is an SDK that helps developers mix traditional programming with Large Language Models (LLMs). This project demonstrates how you can leverage Semantic Kernel in .NET applications, using helper classes, plugins and interactive (Polyglot) notebooks. 
 
-It also features the latest Agent Framework as well as the Azure AI Agent Service to work, hand-in-hand with Semantic Kernel. 
+It also features the latest Agent Framework as well as the Azure AI Foundry Service to work, hand-in-hand with Semantic Kernel. 
 
 ## 📂 Project Structure
 
@@ -117,7 +117,7 @@ As of now, three notebooks are included for you to get started:
    - This also covers the multi-model, multi-agent scenarios.
 
 3. **sk-azureai-agents-02.dib (NEW)**  
-   - A .NET Interactive Notebook that dives deeper into Azure AI Agent Service.  
+   - A .NET Interactive Notebook that dives deeper into Azure AI Foundry Service.  
    - Explores creating persistent, specialised AI agents with memory and personalized user interactions.  
    - Demonstrates advanced use cases like weather forecasting, food ordering, HR policy search, and data visualization.
 
