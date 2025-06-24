@@ -37,26 +37,26 @@ dotnet/
 │   ├── JsonResultTranslator.cs
 │   ├── Settings.cs
 │   └── Utilities.cs
-├── Plugins/
-│   ├── BudgetAdvisor/
-│   ├── CityPlugin/
-│   ├── FlightTrackerPlugin/
-│   ├── FoodPlugin/
-│   ├── GuessPlugin/
-│   └── ShoppingPlugin/
-├── Resources/
-│   ├── agent_performance_metrics.txt
-│   ├── HiEnterprise Troubleshooting Guide.docx
-│   ├── historical_customer_interactions.txt
-│   ├── HR Policies.md
-│   ├── Leave and Attendance Records.pdf
-│   ├── Policy Document.pdf
-│   └── sales_data.txt
 ├── settings.json
 ├── aifoundry-agents.dib
 ├── semantickernel-101.ipynb
 ├── semantickernel-agents.dib
 └── README.md
+Plugins/
+├── BudgetAdvisor/
+├── CityPlugin/
+├── FlightTrackerPlugin/
+├── FoodPlugin/
+├── GuessPlugin/
+└── ShoppingPlugin/
+Resources/
+├── agent_performance_metrics.txt
+├── HiEnterprise Troubleshooting Guide.docx
+├── historical_customer_interactions.txt
+├── HR Policies.md
+├── Leave and Attendance Records.pdf
+├── Policy Document.pdf
+└── sales_data.txt
 ```
 
 ---
