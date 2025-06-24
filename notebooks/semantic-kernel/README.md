@@ -113,27 +113,21 @@ This project includes several example plugins, each within its own folder under 
 
 ## 📓 Notebooks
 
-As of now, several notebooks are included for you to get started:
+As of now, three notebooks are included for you to get started:
 
-1. **getting-started.ipynb**  
-   - Covers the fundamentals of Semantic Kernel usage.  
-   - Shows how to set up prompts, connect to AI services, and run basic operations.  
+1. **semantickernel-101.ipynb**  
+   - Covers the fundamentals of Semantic Kernel usage, prompt engineering, and basic LLM operations.  
+   - Demonstrates how to set up prompts, connect to AI services, and run basic operations.  
    - Also covers multimodal capabilities.
 
-2. **semantickernel-101.ipynb**  
-   - A quickstart for basic LLM and Semantic Kernel usage.
-
-3. **sk-agents-01.dib**  
-   - Demonstrates agent-based workflows and how to orchestrate multiple AI calls in a single pipeline.  
-   - Covers multi-model, multi-agent scenarios.
-
-4. **sk-azureai-agents-02.dib**  
+2. **aifoundry-agents.dib**  
    - Dives deeper into Azure AI Foundry Service.  
    - Explores creating persistent, specialized AI agents with memory and personalized user interactions.  
    - Demonstrates advanced use cases like weather forecasting, food ordering, HR policy search, and data visualization.
 
-5. **semantickernel-agents.dib**  
-   - Advanced orchestration, Copilot Studio agent integration, and multi-agent scenarios.
+3. **semantickernel-agents.dib**  
+   - Demonstrates advanced agent-based workflows and multi-agent orchestration.  
+   - Shows Copilot Studio agent integration and complex agent scenarios.
 
 Feel free to create additional notebooks or modify these to suit your needs.
 
@@ -159,6 +153,7 @@ These resources are utilized by various agents in the notebooks to demonstrate t
 
 - **settings.json** and **Settings.cs** hold your keys and other configuration details. Make sure to fill these with your own credentials (e.g., Azure OpenAI or OpenAI API keys) before running the project.
 - **Environment Variables**: If you prefer not to store credentials in plain text, you can configure your environment variables and adjust `Settings.cs` to read from them.
+- You can add `settings.json` on your own by looking at the structure defined above.
 
 ---
 
