@@ -1,30 +1,30 @@
 # Semantic Kernel Agent Framework & Azure AI Foundry Agent Service
-This folder contains a .NET based notebooks showcasing how to integrate with [Microsoft Semantic Kernel](https://github.com/microsoft/semantic-kernel) from the scratch. It provides various helpers, plugins and notebooks to help you quickly get started with building AI-driven applications with the enterprises using .NET ecosystem.
+This folder contains .NET-based notebooks showcasing how to integrate with [Microsoft Semantic Kernel](https://github.com/microsoft/semantic-kernel) from scratch. It provides various helpers, plugins, and notebooks to help you quickly get started with building AI-driven applications for enterprises using the .NET ecosystem.
 
 `Disclaimer: The documentation has been modified using AI with the latest Agent mode in GitHub Copilot.`
 
 ## 📜 Table of Contents
 
-- [🔍Overview](#-overview)
-- [📂Project Structure](#-project-structure)
-- [🛠Prerequisites](#-prerequisites)
-- [⚡Setup & Usage](#-setup--usage)
-  - [▶Getting the Project](#-getting-the-project)
-  - [📖Running the Notebooks](#-running-the-notebooks)
-- [🔌Plugins](#-plugins)
-- [📓Notebooks](#-notebooks)
-- [📂Resources](#-resources)
-- [⚙Configuration](#-configuration)
-- [🤝Contributing](#-contributing)
-- [📜License](#-license)
+- [🔍 Overview](#-overview)
+- [📂 Project Structure](#-project-structure)
+- [🛠 Prerequisites](#-prerequisites)
+- [⚡ Setup & Usage](#-setup--usage)
+  - [▶ Getting the Project](#-getting-the-project)
+  - [📖 Running the Notebooks](#-running-the-notebooks)
+- [🔌 Plugins](#-plugins)
+- [📓 Notebooks](#-notebooks)
+- [📂 Resources](#-resources)
+- [⚙ Configuration](#-configuration)
+- [🤝 Contributing](#-contributing)
+- [📜 License](#-license)
 
 ---
 
 ## 🔍 Overview
 
-Semantic Kernel is an SDK that helps developers mix traditional programming with Large Language Models (LLMs). This project demonstrates how you can leverage Semantic Kernel in .NET applications, using helper classes, plugins and interactive (Polyglot) notebooks. 
+Semantic Kernel is an SDK that helps developers mix traditional programming with Large Language Models (LLMs). This project demonstrates how you can leverage Semantic Kernel in .NET applications, using helper classes, plugins, and interactive (Polyglot) notebooks.
 
-It also features the latest Agent Framework as well as the Azure AI Foundry Service to work, hand-in-hand with Semantic Kernel. 
+It also features the latest Agent Framework as well as the Azure AI Foundry Service to work hand-in-hand with Semantic Kernel.
 
 ## 📂 Project Structure
 
@@ -52,11 +52,11 @@ dotnet/
 │   ├── Leave and Attendance Records.pdf
 │   ├── Policy Document.pdf
 │   └── sales_data.txt
-├── getting-started.ipynb
 ├── settings.json
-├── sk-agents-01.dib
-├── sk-azureai-agents-02.dib
-├── README.md
+├── aifoundry-agents.dib
+├── semantickernel-101.ipynb
+├── semantickernel-agents.dib
+└── README.md
 ```
 
 ---
@@ -83,9 +83,18 @@ dotnet/
   - Open this Jupyter Notebook with Visual Studio Code.
   - Execute cells to explore how Semantic Kernel can be used for prompt engineering and basic AI-driven workflows.
 
+- **semantickernel-101.ipynb**  
+  - A quickstart notebook for Semantic Kernel basics and simple LLM calls.
+
 - **sk-agents-01.dib**  
-  - Open this Jupyter Notebook with Visual Studio Code.
+  - Open this .NET Interactive Notebook with Visual Studio Code.
   - Execute the cells to see advanced scenarios of agent-based interactions with Semantic Kernel.
+
+- **sk-azureai-agents-02.dib**  
+  - Dive deeper into Azure AI Foundry Service and persistent, specialized AI agents.
+
+- **semantickernel-agents.dib**  
+  - Explore multi-agent orchestration, Copilot Studio integration, and advanced agent workflows.
 
 ---
 
@@ -104,22 +113,27 @@ This project includes several example plugins, each within its own folder under 
 
 ## 📓 Notebooks
 
-As of now, three notebooks are included for you to get started:
+As of now, several notebooks are included for you to get started:
 
 1. **getting-started.ipynb**  
-   - A Jupyter Notebook that covers the fundamentals of Semantic Kernel usage.  
+   - Covers the fundamentals of Semantic Kernel usage.  
    - Shows how to set up prompts, connect to AI services, and run basic operations.  
-   - This also covers the multimodal capabilities.
+   - Also covers multimodal capabilities.
 
-2. **sk-agents-01.dib**  
-   - A .NET Interactive Notebook for more advanced use cases.  
+2. **semantickernel-101.ipynb**  
+   - A quickstart for basic LLM and Semantic Kernel usage.
+
+3. **sk-agents-01.dib**  
    - Demonstrates agent-based workflows and how to orchestrate multiple AI calls in a single pipeline.  
-   - This also covers the multi-model, multi-agent scenarios.
+   - Covers multi-model, multi-agent scenarios.
 
-3. **sk-azureai-agents-02.dib (NEW)**  
-   - A .NET Interactive Notebook that dives deeper into Azure AI Foundry Service.  
-   - Explores creating persistent, specialised AI agents with memory and personalized user interactions.  
+4. **sk-azureai-agents-02.dib**  
+   - Dives deeper into Azure AI Foundry Service.  
+   - Explores creating persistent, specialized AI agents with memory and personalized user interactions.  
    - Demonstrates advanced use cases like weather forecasting, food ordering, HR policy search, and data visualization.
+
+5. **semantickernel-agents.dib**  
+   - Advanced orchestration, Copilot Studio agent integration, and multi-agent scenarios.
 
 Feel free to create additional notebooks or modify these to suit your needs.
 
@@ -144,7 +158,6 @@ These resources are utilized by various agents in the notebooks to demonstrate t
 ## ⚙ Configuration
 
 - **settings.json** and **Settings.cs** hold your keys and other configuration details. Make sure to fill these with your own credentials (e.g., Azure OpenAI or OpenAI API keys) before running the project.
-
 - **Environment Variables**: If you prefer not to store credentials in plain text, you can configure your environment variables and adjust `Settings.cs` to read from them.
 
 ---
