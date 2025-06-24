@@ -79,22 +79,14 @@ Resources/
 
 ### 📖 Running the Notebooks
 
-- **getting-started.ipynb**  
-  - Open this Jupyter Notebook with Visual Studio Code.
-  - Execute cells to explore how Semantic Kernel can be used for prompt engineering and basic AI-driven workflows.
-
 - **semantickernel-101.ipynb**  
   - A quickstart notebook for Semantic Kernel basics and simple LLM calls.
 
-- **sk-agents-01.dib**  
-  - Open this .NET Interactive Notebook with Visual Studio Code.
-  - Execute the cells to see advanced scenarios of agent-based interactions with Semantic Kernel.
-
-- **sk-azureai-agents-02.dib**  
-  - Dive deeper into Azure AI Foundry Service and persistent, specialized AI agents.
-
 - **semantickernel-agents.dib**  
   - Explore multi-agent orchestration, Copilot Studio integration, and advanced agent workflows.
+
+- **aifoundry-agents.dib**  
+  - Dive deeper into Azure AI Foundry Service and persistent, specialized AI agents.
 
 ---
 
