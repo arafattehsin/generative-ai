@@ -40,6 +40,7 @@ _I will leave this example for you to create at the end._ 😉
 #r "nuget: Microsoft.SemanticKernel.Connectors.Onnx, *-*"
 #r "nuget: Microsoft.SemanticKernel.Connectors.Ollama, *-*"
 #r "nuget: Microsoft.SemanticKernel.Connectors.AzureOpenAI, *-*"
+#r "nuget: Microsoft.Extensions.AI, *-*"
 
 #!import Helpers/Settings.cs
 
@@ -90,55 +91,73 @@ using System.Text.Json;
         return JsonSerializer.Serialize(obj, s_jsonOptionsCache);
     }
 
-    protected static void WriteAgentChatMessage(ChatMessageContent message)
-    {
-        // Include ChatMessageContent.AuthorName in output, if present.
-        string authorExpression = message.Role == AuthorRole.User ? string.Empty : $" - {message.AuthorName ?? "*"}";
-        // Include TextContent (via ChatMessageContent.Content), if present.
-        string contentExpression = string.IsNullOrWhiteSpace(message.Content) ? string.Empty : message.Content;
-        bool isCode = message.Metadata?.ContainsKey(OpenAIAssistantAgent.CodeInterpreterMetadataKey) ?? false;
-        string codeMarker = isCode ? "\n  [CODE]\n" : " ";
-        Console.WriteLine($"\n# {message.Role}{authorExpression}:{codeMarker}{contentExpression}");
+     protected void WriteAgentChatMessage(ChatMessageContent message)
+ {
+     // Include ChatMessageContent.AuthorName in output, if present.
+     string authorExpression = message.Role == AuthorRole.User ? string.Empty : FormatAuthor();
+     // Include TextContent (via ChatMessageContent.Content), if present.
+     string contentExpression = string.IsNullOrWhiteSpace(message.Content) ? string.Empty : message.Content;
+     bool isCode = message.Metadata?.ContainsKey(OpenAIAssistantAgent.CodeInterpreterMetadataKey) ?? false;
+     string codeMarker = isCode ? "\n  [CODE]\n" : " ";
+     System.Console.WriteLine($"\n# {message.Role}{authorExpression}:{codeMarker}{contentExpression}");
 
-        // Provide visibility for inner content (that isn't TextContent).
-        foreach (KernelContent item in message.Items)
-        {
-            if (item is AnnotationContent annotation)
-            {
-                Console.WriteLine($"  [{item.GetType().Name}] {annotation.Quote}: File #{annotation.FileId}");
-            }
-            else if (item is FileReferenceContent fileReference)
-            {
-                Console.WriteLine($"  [{item.GetType().Name}] File #{fileReference.FileId}");
-            }
-            else if (item is ImageContent image)
-            {
-                Console.WriteLine($"  [{item.GetType().Name}] {image.Uri?.ToString() ?? image.DataUri ?? $"{image.Data?.Length} bytes"}");
-            }
-            else if (item is FunctionCallContent functionCall)
-            {
-                Console.WriteLine($"  [{item.GetType().Name}] {functionCall.Id}");
-            }
-            else if (item is FunctionResultContent functionResult)
-            {
-                Console.WriteLine($"  [{item.GetType().Name}] {functionResult.CallId} - {functionResult.Result?.AsJson() ?? "*"}");
-            }
-        }
+     // Provide visibility for inner content (that isn't TextContent).
+     foreach (KernelContent item in message.Items)
+     {
+         if (item is AnnotationContent annotation)
+         {
+             if (annotation.Kind == AnnotationKind.UrlCitation)
+             {
+                 Console.WriteLine($"  [{item.GetType().Name}] {annotation.Label}: {annotation.ReferenceId} - {annotation.Title}");
+             }
+             else
+             {
+                 Console.WriteLine($"  [{item.GetType().Name}] {annotation.Label}: File #{annotation.ReferenceId}");
+             }
+         }
+         else if (item is ActionContent action)
+         {
+             Console.WriteLine($"  [{item.GetType().Name}] {action.Text}");
+         }
+         else if (item is ReasoningContent reasoning)
+         {
+             Console.WriteLine($"  [{item.GetType().Name}] {reasoning.Text.DefaultIfEmpty("Thinking...")}");
+         }
+         else if (item is FileReferenceContent fileReference)
+         {
+             Console.WriteLine($"  [{item.GetType().Name}] File #{fileReference.FileId}");
+         }
+         else if (item is ImageContent image)
+         {
+             Console.WriteLine($"  [{item.GetType().Name}] {image.Uri?.ToString() ?? image.DataUri ?? $"{image.Data?.Length} bytes"}");
+         }
+         else if (item is FunctionCallContent functionCall)
+         {
+             Console.WriteLine($"  [{item.GetType().Name}] {functionCall.Id}");
+         }
+         else if (item is FunctionResultContent functionResult)
+         {
+             Console.WriteLine($"  [{item.GetType().Name}] {functionResult.CallId} - {functionResult.Result?.AsJson() ?? "*"}");
+         }
+     }
 
-        if (message.Metadata?.TryGetValue("Usage", out object? usage) ?? false)
-        {
-            if (usage is ChatTokenUsage agentUsage)
-            {
-                WriteUsage(agentUsage.TotalTokenCount, agentUsage.InputTokenCount, agentUsage.OutputTokenCount);
-            }
+     if (message.Metadata?.TryGetValue("Usage", out object? usage) ?? false)
+     {
+         else if (usage is ChatTokenUsage chatUsage)
+         {
+             WriteUsage(chatUsage.TotalTokenCount, chatUsage.InputTokenCount, chatUsage.OutputTokenCount);
+         }
+     }
 
-        }
+     string FormatAuthor() => message.AuthorName is not null ? $" - {message.AuthorName ?? " * "}" : string.Empty;
 
-        void WriteUsage(long totalTokens, long inputTokens, long outputTokens)
-        {
-            Console.WriteLine($"  [Usage] Tokens: {totalTokens}, Input: {inputTokens}, Output: {outputTokens}");
-        }
-    }
+     void WriteUsage(long totalTokens, long inputTokens, long outputTokens)
+     {
+         Console.WriteLine($"  [Usage] Tokens: {totalTokens}, Input: {inputTokens}, Output: {outputTokens}");
+     }
+ }
+
+    
 
     async static Task InvokeAgentAsync(string input, ChatCompletionAgent agent, ChatHistoryAgentThread chat)
     {
@@ -613,11 +632,11 @@ using Microsoft.SemanticKernel.Agents.CopilotStudio;
 
 #pragma warning disable SKEXP0110
 CopilotStudioConnectionSettings settings = new (
-    tenantId: "686d7b86-6e7a-4165-93d3-a24c57137638", 
-    appClientId: "27660f41-a807-4f4e-b5f2-0b4deae2d074", 
-    appClientSecret: "<COPILOT_STUDIO_CLIENT_SECRET>"); // TODO: Set via environment variable or secret manager
-settings.SchemaName = "cr540_agent";
-settings.EnvironmentId = "e52e8be1-c2d5-e2c7-a512-4470b7c27e11"; 
+    tenantId: Environment.GetEnvironmentVariable("COPILOTSTUDIO_TENANT"), 
+    appClientId: Environment.GetEnvironmentVariable("COPILOTSTUDIO_AGENT_APPID"),
+    appClientSecret: Environment.GetEnvironmentVariable("COPILOTSTUDIO_AGENT_APPSECRET"));
+settings.SchemaName = "cr540_outdoorExplorer"; // get schema name from Copilot Studio
+settings.EnvironmentId = Environment.GetEnvironmentVariable("COPILOTSTUDIO_ENVID");
 
 CopilotClient client = CopilotStudioAgent.CreateClient(settings);
 CopilotStudioAgent agent = new(client);
