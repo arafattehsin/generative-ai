@@ -51,3 +51,7 @@
 /notebooks/semantic-kernel/.vs
 /.vscode
 /notebooks/.github
+/samples/dotnet/ConvertHeicMCP/.vs/ConvertHeicMCP
+/samples/dotnet/ConvertHeicMCP/.vscode
+/samples/dotnet/ConvertHeicMCP/bin/Debug/net9.0
+/samples/dotnet/ConvertHeicMCP/obj
