@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>A2ACustomerService</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+
+        <!-- A2A .NET SDK Packages -->
+        <PackageReference Include="A2A" Version="*" Condition="false" />
+        <PackageReference Include="A2A.AspNetCore" Version="*" Condition="false" />
+
+        <!-- Semantic Kernel for AI processing -->
+        <PackageReference Include="Microsoft.SemanticKernel" Version="1.50.0" />
+        <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.50.0" />
+
+        <!-- For HTTP client and JSON handling -->
+        <PackageReference Include="System.Text.Json" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+    </ItemGroup>
+
+</Project>
