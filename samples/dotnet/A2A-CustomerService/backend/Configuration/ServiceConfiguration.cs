@@ -8,30 +8,49 @@ public static class ServiceConfiguration
 {
     public static IServiceCollection AddA2AServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Read configuration
-        var useRealA2A = configuration.GetValue<bool>("A2A:UseRealImplementation", false);
-        var azureOpenAIEndpoint = configuration.GetValue<string>("AzureOpenAI:Endpoint");
-        var azureOpenAIKey = configuration.GetValue<string>("AzureOpenAI:ApiKey");
+        // Register the configuration service as singleton to maintain state
+        services.AddSingleton<IConfigurationService, ConfigurationService>();
+
+        // Register all services (both real and mock)
+        // We'll use a factory pattern to decide at runtime
+
+        // Azure OpenAI configuration
+        var azureOpenAIEndpoint = Environment.GetEnvironmentVariable("AOI_ENDPOINT_SWDN")
+                                  ?? configuration.GetValue<string>("AzureOpenAI:Endpoint");
+        var azureOpenAIKey = Environment.GetEnvironmentVariable("AOI_KEY_SWDN")
+                             ?? configuration.GetValue<string>("AzureOpenAI:ApiKey");
         var deploymentName = configuration.GetValue<string>("AzureOpenAI:DeploymentName", "gpt-4o");
 
-        // Register services based on configuration
-        if (useRealA2A && !string.IsNullOrEmpty(azureOpenAIEndpoint) && !string.IsNullOrEmpty(azureOpenAIKey))
+        // Register LLM service for real implementation as Singleton to work with Singleton agents
+        if (!string.IsNullOrEmpty(azureOpenAIEndpoint) && !string.IsNullOrEmpty(azureOpenAIKey))
         {
-            // Configure real A2A implementation
-            services.AddScoped<ILLMService>(provider =>
+            services.AddSingleton<ILLMService>(provider =>
                 new LLMService(azureOpenAIEndpoint, azureOpenAIKey, deploymentName));
-            services.AddScoped<ITicketService, A2ATicketService>();
+        }
 
-            // Register A2A agents
-            services.AddScoped<FrontDeskAgent>();
-            services.AddScoped<BillingAgent>();
-            services.AddScoped<TechnicalAgent>();
-        }
-        else
+        // Register both ticket services as Singletons to maintain state
+        services.AddSingleton<MockTicketService>();
+        services.AddSingleton<A2ATicketService>();
+
+        // Register A2A agents as Singletons since they maintain agent state
+        services.AddSingleton<FrontDeskAgent>();
+        services.AddSingleton<BillingAgent>();
+        services.AddSingleton<TechnicalAgent>();
+
+        // Register a factory for ITicketService that decides at runtime
+        services.AddScoped<ITicketService>(provider =>
         {
-            // Use mock implementation
-            services.AddScoped<ITicketService, MockTicketService>();
-        }
+            var configService = provider.GetRequiredService<IConfigurationService>();
+
+            if (configService.UseRealImplementation)
+            {
+                return provider.GetRequiredService<A2ATicketService>();
+            }
+            else
+            {
+                return provider.GetRequiredService<MockTicketService>();
+            }
+        });
 
         return services;
     }

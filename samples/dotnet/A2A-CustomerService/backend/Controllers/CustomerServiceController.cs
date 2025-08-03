@@ -1,7 +1,6 @@
 using A2ACustomerService.Models;
 using A2ACustomerService.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 
 namespace A2ACustomerService.Controllers;
 
@@ -10,16 +9,16 @@ namespace A2ACustomerService.Controllers;
 public class CustomerServiceController : ControllerBase
 {
     private readonly ITicketService _ticketService;
-    private readonly IHubContext<CustomerServiceHub> _hubContext;
+    private readonly IConfigurationService _configurationService;
     private readonly ILogger<CustomerServiceController> _logger;
 
     public CustomerServiceController(
         ITicketService ticketService,
-        IHubContext<CustomerServiceHub> hubContext,
+        IConfigurationService configurationService,
         ILogger<CustomerServiceController> logger)
     {
         _ticketService = ticketService;
-        _hubContext = hubContext;
+        _configurationService = configurationService;
         _logger = logger;
     }
 
@@ -31,9 +30,6 @@ public class CustomerServiceController : ControllerBase
             _logger.LogInformation("Submitting new ticket for customer: {CustomerName}", request.CustomerName);
 
             var ticket = await _ticketService.SubmitTicketAsync(request);
-
-            // Send real-time update to clients
-            await _hubContext.Clients.All.SendAsync("TicketCreated", ticket);
 
             return Ok(ticket);
         }
@@ -96,13 +92,36 @@ public class CustomerServiceController : ControllerBase
     }
 
     [HttpGet("status")]
-    public ActionResult<object> GetStatus()
+    public ActionResult<ImplementationStatus> GetStatus()
     {
-        var isReal = _ticketService is A2ATicketService;
-        return Ok(new
+        return Ok(_configurationService.GetStatus());
+    }
+
+    [HttpPost("toggle-implementation")]
+    public ActionResult<ImplementationStatus> ToggleImplementation([FromBody] ToggleImplementationRequest request)
+    {
+        try
         {
-            implementation = isReal ? "real" : "mock",
-            timestamp = DateTime.UtcNow
-        });
+            _logger.LogInformation("Toggling implementation to: {UseReal}", request.UseReal);
+
+            if (request.UseReal && !_configurationService.HasValidAzureOpenAIConfig)
+            {
+                return BadRequest(new
+                {
+                    error = "Cannot enable real implementation: Azure OpenAI configuration is missing",
+                    missingConfig = "AOI_ENDPOINT_SWDN and AOI_KEY_SWDN environment variables are required"
+                });
+            }
+
+            _configurationService.SetImplementation(request.UseReal);
+            var status = _configurationService.GetStatus();
+
+            return Ok(status);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling implementation");
+            return StatusCode(500, new { error = "Failed to toggle implementation" });
+        }
     }
 }

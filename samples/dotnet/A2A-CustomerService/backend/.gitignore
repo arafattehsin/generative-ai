@@ -44,6 +44,15 @@ artifacts/
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.staging
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
 # Entity Framework
 *.mdf
 *.ldf

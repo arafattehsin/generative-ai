@@ -1,5 +1,4 @@
 using A2ACustomerService.Models;
-using Microsoft.AspNetCore.SignalR;
 
 namespace A2ACustomerService.Services;
 
@@ -10,20 +9,17 @@ public class A2ATicketService : ITicketService
     private readonly FrontDeskAgent _frontDeskAgent;
     private readonly BillingAgent _billingAgent;
     private readonly TechnicalAgent _technicalAgent;
-    private readonly IHubContext<Controllers.CustomerServiceHub>? _hubContext;
     private readonly ILogger<A2ATicketService> _logger;
 
     public A2ATicketService(
         FrontDeskAgent frontDeskAgent,
         BillingAgent billingAgent,
         TechnicalAgent technicalAgent,
-        IHubContext<Controllers.CustomerServiceHub>? hubContext,
         ILogger<A2ATicketService> logger)
     {
         _frontDeskAgent = frontDeskAgent;
         _billingAgent = billingAgent;
         _technicalAgent = technicalAgent;
-        _hubContext = hubContext;
         _logger = logger;
 
         InitializeAgents();
@@ -59,7 +55,7 @@ public class A2ATicketService : ITicketService
         {
             Id = "technical",
             Name = "Technical Support Agent",
-            Type = "tech",
+            Type = "technical",
             Status = AgentStatus.Idle,
             Description = "Resolves technical problems using A2A protocol",
             Capabilities = ["troubleshooting", "technical-support", "system-diagnostics", "a2a-protocol"],
@@ -120,7 +116,6 @@ public class A2ATicketService : ITicketService
             _agents["front-desk"].Status = AgentStatus.Processing;
             _agents["front-desk"].CurrentTicket = ticketId;
 
-            await NotifyUpdate(ticket);
             await Task.Delay(1000); // Simulate A2A communication latency
 
             // Front desk agent processes and determines routing
@@ -135,8 +130,6 @@ public class A2ATicketService : ITicketService
             ticket.Status = TicketStatus.Processing;
             _agents["front-desk"].Status = AgentStatus.Completed;
 
-            await NotifyUpdate(ticket);
-
             // Process with specialized agents using A2A protocol
             foreach (var agentId in assignedAgents)
             {
@@ -144,7 +137,6 @@ public class A2ATicketService : ITicketService
                 {
                     agent.Status = AgentStatus.Processing;
                     agent.CurrentTicket = ticketId;
-                    await NotifyUpdate(ticket);
 
                     _logger.LogInformation("A2A communication: {AgentId} processing ticket {TicketId}", agentId, ticketId);
 
@@ -162,7 +154,6 @@ public class A2ATicketService : ITicketService
 
                     agent.Status = AgentStatus.Completed;
                     agent.CurrentTicket = null;
-                    await NotifyUpdate(ticket);
                 }
             }
 
@@ -180,7 +171,6 @@ public class A2ATicketService : ITicketService
                 agent.CurrentTicket = null;
             }
 
-            await NotifyUpdate(ticket);
             _logger.LogInformation("A2A processing completed for ticket: {TicketId}", ticketId);
         }
         catch (Exception ex)
@@ -192,7 +182,6 @@ public class A2ATicketService : ITicketService
                 agent.Status = AgentStatus.Idle;
                 agent.CurrentTicket = null;
             }
-            await NotifyUpdate(ticket);
         }
     }
 
@@ -239,15 +228,6 @@ public class A2ATicketService : ITicketService
                $"This coordinated response ensures that all aspects of your inquiry have been addressed by our specialized team members. " +
                $"If you need any further assistance, please don't hesitate to contact us.\n\n" +
                $"Best regards,\nCustomer Service Team";
-    }
-
-    private async Task NotifyUpdate(CustomerTicket ticket)
-    {
-        if (_hubContext != null)
-        {
-            await _hubContext.Clients.All.SendAsync("TicketUpdated", ticket);
-            await _hubContext.Clients.All.SendAsync("AgentsUpdated", _agents.Values.ToList());
-        }
     }
 
     public async Task<CustomerTicket?> GetTicketAsync(string ticketId)

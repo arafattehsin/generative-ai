@@ -1,5 +1,4 @@
 using A2ACustomerService.Configuration;
-using A2ACustomerService.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,15 +18,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
-
-// Add SignalR
-builder.Services.AddSignalR();
 
 // Add A2A services
 builder.Services.AddA2AServices(builder.Configuration);
@@ -49,7 +45,6 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<CustomerServiceHub>("/customerServiceHub");
 
 // Add a simple health check endpoint
 app.MapGet("/health", () => new { status = "healthy", timestamp = DateTime.UtcNow });

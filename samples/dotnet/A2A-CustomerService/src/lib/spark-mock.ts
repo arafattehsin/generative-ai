@@ -23,13 +23,13 @@ declare global {
     // Simple rule-based responses for demo purposes
     if (prompt.includes('billing') || prompt.includes('payment') || prompt.includes('charge') || prompt.includes('refund')) {
       if (prompt.includes('technical') || prompt.includes('login') || prompt.includes('bug')) {
-        return 'billing,tech'
+        return 'billing,technical'
       }
       return 'billing'
     }
     
     if (prompt.includes('technical') || prompt.includes('login') || prompt.includes('bug') || prompt.includes('error')) {
-      return 'tech'
+      return 'technical'
     }
     
     // Default response

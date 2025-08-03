@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useKV } from '@/lib/spark-hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +9,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { User, CreditCard, Wrench, PaperPlaneTilt, Clock, CheckCircle, ArrowRight } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { ImplementationToggle } from '@/components/ImplementationToggle'
+import { BackendIntegration } from '@/components/BackendIntegration'
+import { 
+  customerServiceAPI, 
+  mapTicketStatus, 
+  mapAgentStatus,
+  type CustomerTicket as BackendTicket,
+  type AgentInfo as BackendAgent,
+  type SubmitTicketRequest
+} from '@/services/api'
 
 interface Ticket {
   id: string
@@ -34,7 +43,7 @@ interface AgentResponse {
 interface Agent {
   id: string
   name: string
-  type: 'front-desk' | 'billing' | 'tech'
+  type: 'front-desk' | 'billing' | 'technical'
   status: 'idle' | 'processing' | 'completed'
   currentTicket?: string
   icon: any
@@ -42,7 +51,8 @@ interface Agent {
   description: string
 }
 
-const AGENTS: Agent[] = [
+// Legacy agents definition for fallback
+const LEGACY_AGENTS: Agent[] = [
   {
     id: 'front-desk',
     name: 'Front Desk Agent',
@@ -62,9 +72,9 @@ const AGENTS: Agent[] = [
     description: 'Handles billing and account issues'
   },
   {
-    id: 'tech',
+    id: 'technical',
     name: 'Tech Support Agent',
-    type: 'tech',
+    type: 'technical',
     status: 'idle',
     icon: Wrench,
     color: 'agent-tech',
@@ -73,9 +83,12 @@ const AGENTS: Agent[] = [
 ]
 
 function App() {
-  const [tickets, setTickets] = useKV<Ticket[]>('customer-tickets', [])
-  const [agents, setAgents] = useState<Agent[]>(AGENTS)
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [agents, setAgents] = useState<Agent[]>(LEGACY_AGENTS)
   const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null)
+  
+  // Implementation toggle state
+  const [useBackend, setUseBackend] = useState(false)
   
   // Form state
   const [customerName, setCustomerName] = useState('')
@@ -83,101 +96,73 @@ function App() {
   const [subject, setSubject] = useState('')
   const [description, setDescription] = useState('')
 
-  const analyzeTicket = async (ticket: Ticket): Promise<string[]> => {
-    const prompt = spark.llmPrompt`
-    Analyze this customer support ticket and determine which agents should handle it.
+  // Mock implementation functions (without GitHub Spark)
+  const analyzeTicketMock = async (ticket: Ticket): Promise<string[]> => {
+    // Simple keyword-based routing logic
+    const text = (ticket.subject + ' ' + ticket.description).toLowerCase()
+    const agents: string[] = []
     
-    Subject: ${ticket.subject}
-    Description: ${ticket.description}
-    
-    Available agents:
-    - billing: handles billing, payments, account issues, charges, refunds
-    - tech: handles technical issues, login problems, software bugs, system errors
-    
-    Return only the agent IDs that should handle this ticket as a comma-separated list.
-    If it involves multiple areas, include multiple agents.
-    Examples: "billing", "tech", "billing,tech"
-    `
-    
-    const result = await spark.llm(prompt, 'gpt-4o-mini')
-    return result.split(',').map(s => s.trim()).filter(s => ['billing', 'tech'].includes(s))
-  }
-
-  const generateAgentResponse = async (ticket: Ticket, agentType: string): Promise<string> => {
-    const agentContext = {
-      billing: 'You are a billing specialist. Focus on payment issues, account charges, refunds, and billing inquiries.',
-      tech: 'You are a technical support specialist. Focus on login issues, software problems, system errors, and technical troubleshooting.'
+    // Check for billing-related keywords
+    if (text.includes('bill') || text.includes('charge') || text.includes('payment') || 
+        text.includes('refund') || text.includes('invoice') || text.includes('cost')) {
+      agents.push('billing')
     }
-
-    const prompt = spark.llmPrompt`
-    ${agentContext[agentType as keyof typeof agentContext]}
     
-    Customer Issue:
-    Subject: ${ticket.subject}
-    Description: ${ticket.description}
-    
-    Provide a helpful response addressing the ${agentType} aspects of this issue. Be specific and actionable.
-    Keep your response concise (2-3 sentences) as it will be combined with other agent responses.
-    `
-    
-    return await spark.llm(prompt, 'gpt-4o-mini')
-  }
-
-  const aggregateResponses = async (ticket: Ticket): Promise<string> => {
-    const responses = ticket.responses.map(r => `${r.agentId.toUpperCase()}: ${r.response}`).join('\n\n')
-    
-    const prompt = spark.llmPrompt`
-    Combine these specialist responses into a single, coherent customer service reply:
-    
-    ${responses}
-    
-    Create a unified response that:
-    1. Addresses the customer by name (${ticket.customerName})
-    2. Acknowledges their issue clearly
-    3. Combines the specialist insights smoothly
-    4. Provides clear next steps
-    5. Maintains a professional, helpful tone
-    
-    Start with "Dear ${ticket.customerName}," and sign off with "Best regards, Customer Service Team"
-    `
-    
-    return await spark.llm(prompt, 'gpt-4o-mini')
-  }
-
-  const submitTicket = async () => {
-    if (!customerName || !email || !subject || !description) {
-      toast.error('Please fill in all fields')
-      return
+    // Check for technical keywords
+    if (text.includes('error') || text.includes('bug') || text.includes('crash') || 
+        text.includes('not working') || text.includes('broken') || text.includes('issue') || 
+        text.includes('problem') || text.includes('login')) {
+      agents.push('technical')
     }
-
-    const newTicket: Ticket = {
-      id: Date.now().toString(),
-      customerName,
-      email,
-      subject,
-      description,
-      timestamp: new Date().toISOString(),
-      status: 'new',
-      assignedAgents: [],
-      responses: []
+    
+    // Default to billing if no specific match
+    if (agents.length === 0) {
+      agents.push('billing')
     }
-
-    setTickets(currentTickets => [...currentTickets, newTicket])
-    setCurrentTicket(newTicket)
     
-    // Clear form
-    setCustomerName('')
-    setEmail('')
-    setSubject('')
-    setDescription('')
-    
-    toast.success('Support ticket submitted successfully!')
-    
-    // Start processing
-    processTicket(newTicket)
+    return agents
   }
 
-  const processTicket = async (ticket: Ticket) => {
+  const generateAgentResponseMock = async (ticket: Ticket, agentType: string): Promise<string> => {
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    const responses = {
+      billing: [
+        `Hello ${ticket.customerName}, I've reviewed your billing inquiry. Let me help you resolve this issue with your account.`,
+        `Hi ${ticket.customerName}, I can see the billing concern you've raised. I'll look into your account details and provide a solution.`,
+        `Dear ${ticket.customerName}, thank you for contacting us about your billing question. I'm here to assist you with this matter.`
+      ],
+      technical: [
+        `Hi ${ticket.customerName}, I understand you're experiencing technical difficulties. Let me troubleshoot this issue for you.`,
+        `Hello ${ticket.customerName}, I've received your technical support request. I'll help you resolve this problem step by step.`,
+        `Dear ${ticket.customerName}, I can see the technical issue you're facing. Let me provide you with a solution.`
+      ]
+    }
+    
+    const agentResponses = responses[agentType as keyof typeof responses] || responses.billing
+    return agentResponses[Math.floor(Math.random() * agentResponses.length)]
+  }
+
+  const aggregateResponsesMock = async (ticket: Ticket): Promise<string> => {
+    // Simulate aggregation delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const responses = ticket.responses.map(r => r.response).join(' ')
+    
+    return `Dear ${ticket.customerName},
+
+Thank you for contacting our customer service team. We have reviewed your request regarding "${ticket.subject}" and our specialists have worked together to provide you with a comprehensive solution.
+
+${responses}
+
+If you need any further assistance, please don't hesitate to reach out to us. We're here to help!
+
+Best regards,
+Customer Service Team`
+  }
+
+  const processTicketMock = async (ticket: Ticket) => {
     // Update agents and ticket status
     setAgents(current => 
       current.map(agent => 
@@ -200,7 +185,7 @@ function App() {
 
     try {
       // Analyze ticket and determine routing
-      const assignedAgentIds = await analyzeTicket(ticket)
+      const assignedAgentIds = await analyzeTicketMock(ticket)
       
       setTickets(current => 
         current.map(t => 
@@ -224,10 +209,7 @@ function App() {
       const responses: AgentResponse[] = []
       
       for (const agentId of assignedAgentIds) {
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        const response = await generateAgentResponse(ticket, agentId)
+        const response = await generateAgentResponseMock(ticket, agentId)
         responses.push({
           agentId,
           response,
@@ -254,11 +236,8 @@ function App() {
         )
       )
 
-      // Simulate aggregation time
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
       // Generate final response
-      const finalResponse = await aggregateResponses({
+      const finalResponse = await aggregateResponsesMock({
         ...ticket,
         responses
       })
@@ -270,6 +249,13 @@ function App() {
             ? { ...t, status: 'completed', finalResponse }
             : t
         )
+      )
+
+      // Update current ticket if it's the active one
+      setCurrentTicket(current => 
+        current?.id === ticket.id 
+          ? { ...current, status: 'completed', responses, finalResponse }
+          : current
       )
 
       // Reset all agents
@@ -287,6 +273,217 @@ function App() {
       toast.error('Error processing ticket')
       console.error(error)
     }
+  }
+  
+
+  const submitTicket = async () => {
+    if (!customerName || !email || !subject || !description) {
+      toast.error('Please fill in all fields')
+      return
+    }
+
+    try {
+      if (useBackend) {
+        // Backend implementation
+        const categoryKeywords = {
+          billing: ['bill', 'charge', 'payment', 'refund', 'invoice', 'cost'],
+          technical: ['error', 'bug', 'crash', 'not working', 'broken', 'issue', 'problem'],
+          general: ['question', 'help', 'support', 'information', 'inquiry']
+        }
+        
+        const text = (subject + ' ' + description).toLowerCase()
+        let category = 'general'
+        
+        if (categoryKeywords.billing.some(keyword => text.includes(keyword))) {
+          category = 'billing'
+        } else if (categoryKeywords.technical.some(keyword => text.includes(keyword))) {
+          category = 'technical'
+        }
+        
+        const backendTicket: SubmitTicketRequest = {
+          customerName,
+          email,
+          subject,
+          description,
+          category
+        }
+        
+        const response = await customerServiceAPI.submitTicket(backendTicket)
+        
+        // Convert backend response to local format
+        const newTicket: Ticket = {
+          id: response.id,
+          customerName: response.customerName,
+          email: response.email,
+          subject: response.subject,
+          description: response.description,
+          timestamp: response.timestamp,
+          status: mapTicketStatus(response.status),
+          assignedAgents: response.assignedAgents || [],
+          responses: []
+        }
+
+        setTickets(currentTickets => [...currentTickets, newTicket])
+        setCurrentTicket(newTicket)
+        
+        toast.success('Support ticket submitted successfully!')
+        
+        // Start polling for backend updates
+        pollBackendTicketUpdates(response.id)
+        
+      } else {
+        // Mock implementation
+        const newTicket: Ticket = {
+          id: Date.now().toString(),
+          customerName,
+          email,
+          subject,
+          description,
+          timestamp: new Date().toISOString(),
+          status: 'new',
+          assignedAgents: [],
+          responses: []
+        }
+
+        setTickets(currentTickets => [...currentTickets, newTicket])
+        setCurrentTicket(newTicket)
+        
+        toast.success('Support ticket submitted successfully!')
+        
+        // Start mock processing with real-time updates
+        setTimeout(() => processTicketMock(newTicket), 1000)
+      }
+      
+      // Clear form
+      setCustomerName('')
+      setEmail('')
+      setSubject('')
+      setDescription('')
+      
+    } catch (error) {
+      console.error('Failed to submit ticket:', error)
+      toast.error('Failed to submit ticket. Please try again.')
+    }
+  }
+
+
+
+  const pollBackendTicketUpdates = async (ticketId: string) => {
+    const maxAttempts = 10 // Poll for up to 30 seconds (3s intervals)
+    let attempts = 0
+    
+    const pollTicket = async () => {
+      try {
+        const ticketResponse = await customerServiceAPI.getTicket(ticketId)
+        
+        // Update the ticket in our state
+        setTickets(current => 
+          current.map(t => 
+            t.id === ticketId 
+              ? {
+                  ...t,
+                  status: mapTicketStatus(ticketResponse.status),
+                  assignedAgents: ticketResponse.assignedAgents || [],
+                  finalResponse: ticketResponse.finalResponse,
+                  // Map backend responses to frontend format
+                  responses: ticketResponse.responses?.map(r => ({
+                    agentId: r.agentId,
+                    response: r.response,
+                    timestamp: r.timestamp,
+                    status: 'completed' as const
+                  })) || []
+                }
+              : t
+          )
+        )
+        
+        // Update current ticket if it's the active one - THIS WAS THE MISSING PIECE
+        setCurrentTicket(current => 
+          current?.id === ticketId 
+            ? {
+                ...current,
+                status: mapTicketStatus(ticketResponse.status),
+                assignedAgents: ticketResponse.assignedAgents || [],
+                finalResponse: ticketResponse.finalResponse,
+                // Map backend responses to frontend format
+                responses: ticketResponse.responses?.map(r => ({
+                  agentId: r.agentId,
+                  response: r.response,
+                  timestamp: r.timestamp,
+                  status: 'completed' as const
+                })) || []
+              }
+            : current
+        )
+        
+        // Update agents based on ticket status and assigned agents
+        setAgents(current => 
+          current.map(agent => {
+            const isAssigned = ticketResponse.assignedAgents && ticketResponse.assignedAgents.includes(agent.id)
+            let status: 'idle' | 'processing' | 'completed' = 'idle'
+            
+            // Handle Front Desk Agent - always processes first
+            if (agent.id === 'front-desk') {
+              if (ticketResponse.status === 0) { // New
+                status = 'idle'
+              } else if (ticketResponse.status === 1) { // Routing
+                status = 'processing'
+              } else if (ticketResponse.status >= 2) { // Processing or Completed
+                status = 'completed'
+              }
+            }
+            // Handle assigned specialist agents
+            else if (isAssigned) {
+              if (ticketResponse.status === 3) { // 3 = Completed
+                status = 'completed'
+              } else if (ticketResponse.status === 2) { // 2 = Processing
+                status = 'processing'
+              }
+            }
+            
+            return {
+              ...agent,
+              status,
+              currentTicket: (isAssigned && ticketResponse.status !== 3) || 
+                           (agent.id === 'front-desk' && ticketResponse.status === 1) 
+                           ? ticketId : undefined
+            }
+          })
+        )
+        
+        // If ticket is completed, stop polling and reset agents after a short delay
+        if (ticketResponse.status === 3 || ticketResponse.status === 4) { // 3 = Completed, 4 = Failed
+          setTimeout(() => {
+            setAgents(current => 
+              current.map(agent => ({
+                ...agent,
+                status: 'idle',
+                currentTicket: undefined
+              }))
+            )
+          }, 2000) // Show completion for 2 seconds before resetting
+          
+          toast.success('Ticket processing completed!')
+          return
+        }
+        
+        // Continue polling if not completed and we haven't reached max attempts
+        attempts++
+        if (attempts < maxAttempts) {
+          setTimeout(pollTicket, 3000) // Poll every 3 seconds
+        }
+        
+      } catch (error) {
+        console.error('Error polling ticket updates:', error)
+        attempts++
+        if (attempts < maxAttempts) {
+          setTimeout(pollTicket, 3000) // Retry on error
+        }
+      }
+    }
+    
+    // Start polling after a short delay to allow backend processing to begin
+    setTimeout(pollTicket, 1000)
   }
 
   const getStatusBadge = (status: string) => {
@@ -327,6 +524,9 @@ function App() {
             Intelligent agent-to-agent communication for seamless customer support
           </p>
         </div>
+
+        <ImplementationToggle onImplementationChange={setUseBackend} />
+        <BackendIntegration />
 
         {/* Agent Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -56,12 +56,19 @@ public class FrontDeskAgent : BaseA2AAgent
     public override async Task<AgentResponse> ProcessTicketAsync(CustomerTicket ticket)
     {
         var specificPrompt = @"
-As a front desk agent, your role is to:
-1. Acknowledge the customer's request
-2. Coordinate with appropriate specialists if needed
-3. Provide initial guidance and set expectations
+As a front desk agent, your role is ONLY to:
+1. Acknowledge the customer's request professionally
+2. Confirm that you've received their inquiry
+3. Inform them that you're coordinating with the appropriate specialist team
+4. Keep it brief and professional
 
-Focus on being welcoming and ensuring the customer feels heard.
+DO NOT:
+- Ask for additional information from the customer
+- Provide detailed solutions or advice
+- Go into specifics about their issue
+- Offer troubleshooting steps
+
+Keep your response to 1-2 sentences maximum. Simply acknowledge and confirm routing to specialists.
 ";
 
         return await CreateResponseAsync(ticket, specificPrompt);

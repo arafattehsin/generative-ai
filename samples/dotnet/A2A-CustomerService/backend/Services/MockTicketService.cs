@@ -43,7 +43,7 @@ public class MockTicketService : ITicketService
         {
             Id = "technical",
             Name = "Technical Support Agent",
-            Type = "tech",
+            Type = "technical",
             Status = AgentStatus.Idle,
             Description = "Resolves technical problems",
             Capabilities = ["troubleshooting", "technical-support", "system-diagnostics"],

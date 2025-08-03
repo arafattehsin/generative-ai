@@ -37,3 +37,14 @@ public class ProcessingUpdate
     public object Data { get; set; } = new();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
+
+public class ToggleImplementationRequest
+{
+    public bool UseReal { get; set; }
+}
+
+public class ImplementationStatus
+{
+    public string Implementation { get; set; } = "mock";
+    public string Timestamp { get; set; } = DateTime.UtcNow.ToString("O");
+}
