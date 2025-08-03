@@ -66,18 +66,27 @@
 
 /* Custom agent colors */
 .agent-front-desk {
-  --agent-color: oklch(0.65 0.20 15);
-  --agent-bg: oklch(0.98 0.04 15);
+  --agent-color: #3b82f6;
+  --agent-bg: #eff6ff;
+  border: 1px solid #dbeafe;
 }
 
 .agent-billing {
-  --agent-color: oklch(0.65 0.12 120);
-  --agent-bg: oklch(0.98 0.03 120);
+  --agent-color: #10b981;
+  --agent-bg: #ecfdf5;
+  border: 1px solid #d1fae5;
 }
 
 .agent-tech {
-  --agent-color: oklch(0.70 0.15 60);
-  --agent-bg: oklch(0.98 0.03 60);
+  --agent-color: #8b5cf6;
+  --agent-bg: #f5f3ff;
+  border: 1px solid #e9d5ff;
+}
+
+.agent-orchestrator {
+  --agent-color: #f97316;
+  --agent-bg: #fff7ed;
+  border: 1px solid #fed7aa;
 }
 
 /* Processing animation */

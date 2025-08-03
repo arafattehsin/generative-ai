@@ -1,5 +1,5 @@
 // API service for communicating with the A2A Customer Service backend
-const API_BASE_URL = 'http://localhost:5000/api/customerservice';
+const API_BASE_URL = 'https://localhost:5001/api/customerservice';
 
 export interface SubmitTicketRequest {
   customerName: string;
@@ -177,7 +177,19 @@ export function mapTicketStatus(backendStatus: string | number): 'new' | 'routin
 }
 
 // Helper function to map agent status
-export function mapAgentStatus(backendStatus: string): 'idle' | 'processing' | 'completed' {
+export function mapAgentStatus(backendStatus: string | number): 'idle' | 'processing' | 'completed' {
+  // Handle both enum numbers and string values
+  if (typeof backendStatus === 'number') {
+    const numericStatusMap: { [key: number]: 'idle' | 'processing' | 'completed' } = {
+      0: 'idle',        // Idle
+      1: 'processing',  // Processing
+      2: 'completed',   // Completed
+      3: 'idle'         // Error (treat as idle for UI purposes)
+    };
+    return numericStatusMap[backendStatus] || 'idle';
+  }
+  
+  // Handle string values (fallback)
   const statusMap: { [key: string]: 'idle' | 'processing' | 'completed' } = {
     'Idle': 'idle',
     'Processing': 'processing',

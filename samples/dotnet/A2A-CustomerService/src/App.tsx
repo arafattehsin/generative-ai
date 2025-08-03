@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
-import { User, CreditCard, Wrench, PaperPlaneTilt, Clock, CheckCircle, ArrowRight } from '@phosphor-icons/react'
+import { User, CreditCard, Wrench, ArrowsClockwise, PaperPlaneTilt, Clock, CheckCircle, ArrowRight } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { ImplementationToggle } from '@/components/ImplementationToggle'
 import { BackendIntegration } from '@/components/BackendIntegration'
@@ -43,7 +43,7 @@ interface AgentResponse {
 interface Agent {
   id: string
   name: string
-  type: 'front-desk' | 'billing' | 'technical'
+  type: 'front-desk' | 'billing' | 'technical' | 'orchestrator'
   status: 'idle' | 'processing' | 'completed'
   currentTicket?: string
   icon: any
@@ -79,8 +79,51 @@ const LEGACY_AGENTS: Agent[] = [
     icon: Wrench,
     color: 'agent-tech',
     description: 'Resolves technical problems'
+  },
+  {
+    id: 'orchestrator',
+    name: 'Response Orchestrator Agent',
+    type: 'orchestrator',
+    status: 'idle',
+    icon: ArrowsClockwise,
+    color: 'agent-orchestrator',
+    description: 'Synthesizes and coordinates multi-agent responses'
   }
 ]
+
+// Icon mapping for backend agent data
+const getIconByName = (iconName: string) => {
+  switch (iconName) {
+    case 'User': return User
+    case 'CreditCard': return CreditCard
+    case 'Wrench': return Wrench
+    case 'ArrowsClockwise': return ArrowsClockwise
+    default: return User
+  }
+}
+
+// Convert backend agent info to frontend agent format
+const convertBackendAgent = (backendAgent: any): Agent => ({
+  id: backendAgent.id,
+  name: backendAgent.name,
+  type: backendAgent.type,
+  status: mapAgentStatus(backendAgent.status),
+  currentTicket: backendAgent.currentTicket,
+  icon: getIconByName(backendAgent.iconName),
+  color: getColorMapping(backendAgent.id), // Use ID-based color mapping instead of backend color
+  description: backendAgent.description
+})
+
+// Map agent IDs to consistent color classes
+const getColorMapping = (agentId: string): string => {
+  switch (agentId) {
+    case 'front-desk': return 'agent-front-desk'
+    case 'billing': return 'agent-billing'
+    case 'technical': return 'agent-tech'
+    case 'orchestrator': return 'agent-orchestrator'
+    default: return 'agent-front-desk'
+  }
+}
 
 function App() {
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -95,6 +138,33 @@ function App() {
   const [email, setEmail] = useState('')
   const [subject, setSubject] = useState('')
   const [description, setDescription] = useState('')
+
+  // Load agents when implementation changes
+  useEffect(() => {
+    // Always fetch agents from backend (both mock and real implementations support 4 agents)
+    loadAgentsFromBackend()
+  }, [useBackend])
+
+  // Load agents initially when component mounts
+  useEffect(() => {
+    loadAgentsFromBackend()
+  }, [])
+
+  const loadAgentsFromBackend = async () => {
+    try {
+      console.log('Loading agents from backend...')
+      const backendAgents = await customerServiceAPI.getAgents()
+      console.log('Backend agents received:', backendAgents)
+      const frontendAgents = backendAgents.map(convertBackendAgent)
+      console.log('Frontend agents mapped:', frontendAgents)
+      setAgents(frontendAgents)
+    } catch (error) {
+      console.error('Failed to load agents from backend:', error)
+      console.log('Falling back to LEGACY_AGENTS:', LEGACY_AGENTS)
+      // Fallback to legacy agents (now includes orchestrator)
+      setAgents(LEGACY_AGENTS)
+    }
+  }
 
   // Mock implementation functions (without GitHub Spark)
   const analyzeTicketMock = async (ticket: Ticket): Promise<string[]> => {
@@ -157,6 +227,42 @@ Thank you for contacting our customer service team. We have reviewed your reques
 ${responses}
 
 If you need any further assistance, please don't hesitate to reach out to us. We're here to help!
+
+Best regards,
+Customer Service Team`
+  }
+
+  const generateOrchestratorResponseMock = async (ticket: Ticket, specialistResponses: AgentResponse[]): Promise<AgentResponse> => {
+    // Simulate orchestrator processing delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const combinedScenarios = [
+      `After coordinating with our billing and technical specialists, I've identified that ${ticket.customerName} was unable to process their request due to interconnected issues. Our technical team has resolved the system problems, and our billing team has addressed the account concerns. This comprehensive solution ensures both technical functionality and billing accuracy are restored.`,
+      
+      `Our team coordination reveals that ${ticket.customerName}'s difficulties involved both technical and billing aspects. The specialists have worked together to provide an integrated solution that addresses all underlying causes. This coordinated approach ensures seamless service restoration.`,
+      
+      `Through A2A coordination, we've determined that ${ticket.customerName}'s issues required expertise from multiple departments. Our technical and billing teams have collaborated to implement a unified solution that resolves all aspects of your inquiry.`
+    ]
+
+    return {
+      agentId: 'orchestrator',
+      response: combinedScenarios[Math.floor(Math.random() * combinedScenarios.length)],
+      timestamp: new Date().toISOString(),
+      status: 'completed'
+    }
+  }
+
+  const generateFinalResponseWithOrchestrationMock = async (ticket: Ticket, orchestratorResponse: AgentResponse): Promise<string> => {
+    // Simulate final response generation
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    return `Dear ${ticket.customerName},
+
+Thank you for contacting our customer service team regarding "${ticket.subject}".
+
+${orchestratorResponse.response}
+
+Our coordinated multi-agent approach ensures that all aspects of your inquiry have been thoroughly addressed by our specialized team members working together. If you need any further assistance or have additional questions, please don't hesitate to contact us.
 
 Best regards,
 Customer Service Team`
@@ -236,11 +342,54 @@ Customer Service Team`
         )
       )
 
-      // Generate final response
-      const finalResponse = await aggregateResponsesMock({
-        ...ticket,
-        responses
-      })
+      // LAYER 3: Orchestrator Agent - Response Synthesis & Coordination (only if multiple agents)
+      let finalResponse: string
+      
+      if (assignedAgentIds.length > 1) {
+        // Multiple agents - activate orchestrator
+        setAgents(current => 
+          current.map(agent => 
+            agent.id === 'orchestrator'
+              ? { ...agent, status: 'processing', currentTicket: ticket.id }
+              : agent
+          )
+        )
+
+        // Simulate orchestrator processing time
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        // Generate orchestrator response
+        const orchestratorResponse = await generateOrchestratorResponseMock(ticket, responses)
+        
+        // Add orchestrator response to the list
+        const allResponses = [...responses, orchestratorResponse]
+        
+        setTickets(current => 
+          current.map(t => 
+            t.id === ticket.id 
+              ? { ...t, responses: allResponses }
+              : t
+          )
+        )
+
+        // Mark orchestrator as completed
+        setAgents(current => 
+          current.map(agent => 
+            agent.id === 'orchestrator'
+              ? { ...agent, status: 'completed' }
+              : agent
+          )
+        )
+
+        // Generate final customer response with orchestrator synthesis
+        finalResponse = await generateFinalResponseWithOrchestrationMock(ticket, orchestratorResponse)
+      } else {
+        // Single agent - no orchestration needed
+        finalResponse = await aggregateResponsesMock({
+          ...ticket,
+          responses
+        })
+      }
 
       // Complete the ticket
       setTickets(current => 
@@ -374,7 +523,11 @@ Customer Service Team`
     
     const pollTicket = async () => {
       try {
-        const ticketResponse = await customerServiceAPI.getTicket(ticketId)
+        // Fetch both ticket status AND agent statuses from backend
+        const [ticketResponse, backendAgents] = await Promise.all([
+          customerServiceAPI.getTicket(ticketId),
+          customerServiceAPI.getAgents()
+        ])
         
         // Update the ticket in our state
         setTickets(current => 
@@ -397,7 +550,7 @@ Customer Service Team`
           )
         )
         
-        // Update current ticket if it's the active one - THIS WAS THE MISSING PIECE
+        // Update current ticket if it's the active one
         setCurrentTicket(current => 
           current?.id === ticketId 
             ? {
@@ -416,40 +569,9 @@ Customer Service Team`
             : current
         )
         
-        // Update agents based on ticket status and assigned agents
-        setAgents(current => 
-          current.map(agent => {
-            const isAssigned = ticketResponse.assignedAgents && ticketResponse.assignedAgents.includes(agent.id)
-            let status: 'idle' | 'processing' | 'completed' = 'idle'
-            
-            // Handle Front Desk Agent - always processes first
-            if (agent.id === 'front-desk') {
-              if (ticketResponse.status === 0) { // New
-                status = 'idle'
-              } else if (ticketResponse.status === 1) { // Routing
-                status = 'processing'
-              } else if (ticketResponse.status >= 2) { // Processing or Completed
-                status = 'completed'
-              }
-            }
-            // Handle assigned specialist agents
-            else if (isAssigned) {
-              if (ticketResponse.status === 3) { // 3 = Completed
-                status = 'completed'
-              } else if (ticketResponse.status === 2) { // 2 = Processing
-                status = 'processing'
-              }
-            }
-            
-            return {
-              ...agent,
-              status,
-              currentTicket: (isAssigned && ticketResponse.status !== 3) || 
-                           (agent.id === 'front-desk' && ticketResponse.status === 1) 
-                           ? ticketId : undefined
-            }
-          })
-        )
+        // Update agents directly from backend status - trust the backend completely
+        const frontendAgents = backendAgents.map(convertBackendAgent)
+        setAgents(frontendAgents)
         
         // If ticket is completed, stop polling and reset agents after a short delay
         if (ticketResponse.status === 3 || ticketResponse.status === 4) { // 3 = Completed, 4 = Failed
@@ -529,7 +651,7 @@ Customer Service Team`
         <BackendIntegration />
 
         {/* Agent Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {agents.map((agent) => {
             const Icon = agent.icon
             return (

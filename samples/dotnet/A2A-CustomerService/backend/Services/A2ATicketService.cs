@@ -9,17 +9,20 @@ public class A2ATicketService : ITicketService
     private readonly FrontDeskAgent _frontDeskAgent;
     private readonly BillingAgent _billingAgent;
     private readonly TechnicalAgent _technicalAgent;
+    private readonly OrchestratorAgent _orchestratorAgent;
     private readonly ILogger<A2ATicketService> _logger;
 
     public A2ATicketService(
         FrontDeskAgent frontDeskAgent,
         BillingAgent billingAgent,
         TechnicalAgent technicalAgent,
+        OrchestratorAgent orchestratorAgent,
         ILogger<A2ATicketService> logger)
     {
         _frontDeskAgent = frontDeskAgent;
         _billingAgent = billingAgent;
         _technicalAgent = technicalAgent;
+        _orchestratorAgent = orchestratorAgent;
         _logger = logger;
 
         InitializeAgents();
@@ -61,6 +64,18 @@ public class A2ATicketService : ITicketService
             Capabilities = ["troubleshooting", "technical-support", "system-diagnostics", "a2a-protocol"],
             IconName = "Wrench",
             Color = "text-purple-600"
+        };
+
+        _agents["orchestrator"] = new AgentInfo
+        {
+            Id = "orchestrator",
+            Name = "Response Orchestrator Agent",
+            Type = "orchestrator",
+            Status = AgentStatus.Idle,
+            Description = "Synthesizes and coordinates multi-agent responses using A2A protocol",
+            Capabilities = ["response-synthesis", "quality-assurance", "coordination", "conflict-resolution", "a2a-protocol"],
+            IconName = "ArrowsClockwise",
+            Color = "text-orange-600"
         };
     }
 
@@ -109,26 +124,27 @@ public class A2ATicketService : ITicketService
 
         try
         {
-            _logger.LogInformation("Starting A2A processing for ticket: {TicketId}", ticketId);
+            _logger.LogInformation("Starting A2A Three-Layer Processing for ticket: {TicketId}", ticketId);
 
-            // Step 1: Front desk agent initiates A2A protocol
+            // LAYER 1: Front Desk Agent - Customer Interaction & Routing
             ticket.Status = TicketStatus.Routing;
             _agents["front-desk"].Status = AgentStatus.Processing;
             _agents["front-desk"].CurrentTicket = ticketId;
 
             await Task.Delay(1000); // Simulate A2A communication latency
 
-            // Front desk agent processes and determines routing
+            // Front desk agent acknowledges and determines routing
             var frontDeskResponse = await _frontDeskAgent.ProcessTicketAsync(ticket);
-            var responses = new List<AgentResponse> { frontDeskResponse };
-
-            // Determine which agents to involve in A2A protocol
             var assignedAgents = DetermineAssignedAgents(ticket);
             ticket.AssignedAgents = assignedAgents;
 
-            // Step 2: A2A agent-to-agent communication
+            _logger.LogInformation("A2A Layer 1 Complete: Front Desk routed to {AgentCount} specialists", assignedAgents.Count);
+
+            // LAYER 2: Specialist Agents - Domain Expert Processing
             ticket.Status = TicketStatus.Processing;
             _agents["front-desk"].Status = AgentStatus.Completed;
+
+            var specialistResponses = new List<AgentResponse>();
 
             // Process with specialized agents using A2A protocol
             foreach (var agentId in assignedAgents)
@@ -138,7 +154,7 @@ public class A2ATicketService : ITicketService
                     agent.Status = AgentStatus.Processing;
                     agent.CurrentTicket = ticketId;
 
-                    _logger.LogInformation("A2A communication: {AgentId} processing ticket {TicketId}", agentId, ticketId);
+                    _logger.LogInformation("A2A Layer 2: {AgentId} processing ticket {TicketId}", agentId, ticketId);
 
                     // Simulate A2A protocol communication delay
                     await Task.Delay(1500);
@@ -147,35 +163,68 @@ public class A2ATicketService : ITicketService
                     {
                         "billing" => await _billingAgent.ProcessTicketAsync(ticket),
                         "technical" => await _technicalAgent.ProcessTicketAsync(ticket),
-                        _ => frontDeskResponse
+                        _ => throw new InvalidOperationException($"Unknown agent type: {agentId}")
                     };
 
-                    responses.Add(agentResponse);
+                    specialistResponses.Add(agentResponse);
 
                     agent.Status = AgentStatus.Completed;
                     agent.CurrentTicket = null;
                 }
             }
 
-            ticket.Responses = responses;
+            _logger.LogInformation("A2A Layer 2 Complete: {ResponseCount} specialist responses collected", specialistResponses.Count);
 
-            // Step 3: Generate coordinated final response
-            await Task.Delay(800);
-            ticket.FinalResponse = GenerateFinalResponse(ticket);
+            // LAYER 3: Orchestrator Agent - Response Synthesis & Coordination
+            if (specialistResponses.Count > 0)
+            {
+                _agents["orchestrator"].Status = AgentStatus.Processing;
+                _agents["orchestrator"].CurrentTicket = ticketId;
+
+                _logger.LogInformation("A2A Layer 3: Orchestrator synthesizing {ResponseCount} specialist responses", specialistResponses.Count);
+
+                await Task.Delay(1200); // Simulate orchestration processing time
+
+                // Orchestrator synthesizes multiple specialist responses
+                var synthesizedResponse = await _orchestratorAgent.SynthesizeResponsesAsync(ticket, specialistResponses);
+
+                // Create final customer response
+                ticket.FinalResponse = await _orchestratorAgent.CreateFinalCustomerResponseAsync(ticket, synthesizedResponse);
+
+                // Store all responses including the synthesized one
+                var allResponses = new List<AgentResponse> { frontDeskResponse };
+                allResponses.AddRange(specialistResponses);
+                allResponses.Add(synthesizedResponse);
+                ticket.Responses = allResponses;
+
+                _agents["orchestrator"].Status = AgentStatus.Completed;
+                _agents["orchestrator"].CurrentTicket = null;
+
+                _logger.LogInformation("A2A Layer 3 Complete: Orchestrator created unified response");
+            }
+            else
+            {
+                // Single agent scenario - no orchestration needed
+                ticket.FinalResponse = await CreateSimpleFinalResponseAsync(ticket, frontDeskResponse);
+                ticket.Responses = [frontDeskResponse];
+
+                _logger.LogInformation("A2A Processing: Single agent response, no orchestration required");
+            }
+
             ticket.Status = TicketStatus.Completed;
 
-            // Reset all agents
+            // Reset all agents to idle state
             foreach (var agent in _agents.Values)
             {
                 agent.Status = AgentStatus.Idle;
                 agent.CurrentTicket = null;
             }
 
-            _logger.LogInformation("A2A processing completed for ticket: {TicketId}", ticketId);
+            _logger.LogInformation("A2A Three-Layer Processing completed for ticket: {TicketId}", ticketId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in A2A processing for ticket: {TicketId}", ticketId);
+            _logger.LogError(ex, "Error in A2A Three-Layer processing for ticket: {TicketId}", ticketId);
             ticket.Status = TicketStatus.Failed;
             foreach (var agent in _agents.Values)
             {
@@ -205,28 +254,14 @@ public class A2ATicketService : ITicketService
         return agents;
     }
 
-    private string GenerateFinalResponse(CustomerTicket ticket)
+    private async Task<string> CreateSimpleFinalResponseAsync(CustomerTicket ticket, AgentResponse frontDeskResponse)
     {
-        var hasSpecializedResponses = ticket.Responses.Any(r => r.AgentId != "front-desk");
-
-        if (!hasSpecializedResponses)
-        {
-            return $"Dear {ticket.CustomerName},\n\n" +
-                   $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
-                   $"Our team has reviewed your inquiry using our advanced A2A coordination system and provided assistance with your {ticket.Category} matter. " +
-                   $"If you need any further clarification or have additional questions, please don't hesitate to reach out.\n\n" +
-                   $"Best regards,\nCustomer Service Team";
-        }
-
-        var specializedResponses = ticket.Responses.Where(r => r.AgentId != "front-desk").ToList();
-        var responseText = string.Join("\n\n", specializedResponses.Select(r => $"Our {r.AgentType} specialist coordinated through our A2A system: {r.Response}"));
-
+        // For single-agent scenarios, create a simple professional response
         return $"Dear {ticket.CustomerName},\n\n" +
                $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
-               $"Our agents have coordinated through our Agent-to-Agent (A2A) communication system to provide you with the best possible assistance:\n\n" +
-               $"{responseText}\n\n" +
-               $"This coordinated response ensures that all aspects of your inquiry have been addressed by our specialized team members. " +
-               $"If you need any further assistance, please don't hesitate to contact us.\n\n" +
+               $"{frontDeskResponse.Response}\n\n" +
+               $"Our team has reviewed your inquiry and provided assistance with your {ticket.Category} matter. " +
+               $"If you need any further clarification or have additional questions, please don't hesitate to reach out.\n\n" +
                $"Best regards,\nCustomer Service Team";
     }
 

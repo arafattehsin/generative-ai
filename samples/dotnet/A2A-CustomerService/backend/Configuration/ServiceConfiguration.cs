@@ -36,6 +36,7 @@ public static class ServiceConfiguration
         services.AddSingleton<FrontDeskAgent>();
         services.AddSingleton<BillingAgent>();
         services.AddSingleton<TechnicalAgent>();
+        services.AddSingleton<OrchestratorAgent>();
 
         // Register a factory for ITicketService that decides at runtime
         services.AddScoped<ITicketService>(provider =>

@@ -120,3 +120,89 @@ Focus on being thorough and providing clear technical solutions.
         return await CreateResponseAsync(ticket, specificPrompt);
     }
 }
+
+public class OrchestratorAgent : BaseA2AAgent
+{
+    public OrchestratorAgent(ILLMService llmService)
+        : base(llmService, "orchestrator", "Response Orchestrator Agent")
+    {
+    }
+
+    public override async Task<AgentResponse> ProcessTicketAsync(CustomerTicket ticket)
+    {
+        // This method won't be used for the orchestrator as it handles multiple responses
+        throw new NotImplementedException("Use SynthesizeResponsesAsync for orchestrator agent");
+    }
+
+    public async Task<AgentResponse> SynthesizeResponsesAsync(CustomerTicket ticket, List<AgentResponse> specialistResponses)
+    {
+        var responseDetails = string.Join("\n", specialistResponses.Select(r =>
+            $"- {r.AgentType} Agent Response: {r.Response}"));
+
+        var specificPrompt = $@"
+As a Response Orchestrator Agent using A2A protocol, your role is to:
+
+1. ANALYZE multiple specialist agent responses for a customer service ticket
+2. SYNTHESIZE them into a single, coherent, customer-friendly response
+3. ENSURE no important information is lost or duplicated
+4. MAINTAIN professional customer service tone
+5. RESOLVE any conflicting information between agents
+
+CUSTOMER TICKET:
+Subject: {ticket.Subject}
+Description: {ticket.Description}
+Category: {ticket.Category}
+Priority: {ticket.Priority}
+
+SPECIALIST AGENT RESPONSES TO SYNTHESIZE:
+{responseDetails}
+
+ORCHESTRATION RULES:
+- Combine all relevant information into a flowing, natural response
+- Remove redundant statements between agents
+- If there are conflicts, acknowledge both perspectives and provide clarity
+- Keep the customer as the focus, not the internal agent process
+- Do not mention 'A2A', 'orchestrator', or internal agent names to the customer
+- Ensure the response fully addresses the customer's original inquiry
+- Maintain empathy and solution-oriented approach
+
+Create a synthesized response that reads as if it came from a single, knowledgeable customer service representative who consulted with various departments. The summary should not exceed more than 30-50 words.
+";
+
+        var synthesizedText = await _llmService.GenerateResponseAsync(specificPrompt);
+
+        return new AgentResponse
+        {
+            AgentId = "orchestrator",
+            AgentType = "orchestrator",
+            Response = synthesizedText,
+            Status = ResponseStatus.Completed,
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    public async Task<string> CreateFinalCustomerResponseAsync(CustomerTicket ticket, AgentResponse synthesizedResponse)
+    {
+        var finalPrompt = $@"
+As a Response Orchestrator Agent, create the final customer communication.
+
+CUSTOMER DETAILS:
+Name: {ticket.CustomerName}
+Subject: {ticket.Subject}
+
+SYNTHESIZED RESPONSE FROM SPECIALISTS:
+{synthesizedResponse.Response}
+
+FORMAT REQUIREMENTS:
+- Start with proper customer greeting using their name
+- Include the synthesized specialist response
+- End with professional closing and signature
+- Maintain warm, professional tone throughout
+- Keep it concise but complete
+
+Create the final response that will be sent to the customer.
+";
+
+        return await _llmService.GenerateResponseAsync(finalPrompt);
+    }
+}

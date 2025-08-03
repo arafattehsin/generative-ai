@@ -43,12 +43,24 @@ public class MockTicketService : ITicketService
         {
             Id = "technical",
             Name = "Technical Support Agent",
-            Type = "technical",
+            Type = "tech",
             Status = AgentStatus.Idle,
             Description = "Resolves technical problems",
             Capabilities = ["troubleshooting", "technical-support", "system-diagnostics"],
             IconName = "Wrench",
             Color = "text-purple-600"
+        };
+
+        _agents["orchestrator"] = new AgentInfo
+        {
+            Id = "orchestrator",
+            Name = "Response Orchestrator Agent",
+            Type = "orchestrator",
+            Status = AgentStatus.Idle,
+            Description = "Synthesizes and coordinates multi-agent responses using A2A protocol",
+            Capabilities = ["response-synthesis", "quality-assurance", "coordination", "conflict-resolution", "a2a-protocol"],
+            IconName = "ArrowsClockwise",
+            Color = "text-orange-600"
         };
     }
 
@@ -95,65 +107,87 @@ public class MockTicketService : ITicketService
 
         try
         {
-            // Step 1: Front desk routing
+            // LAYER 1: Front Desk Agent - Customer Interaction & Routing
             ticket.Status = TicketStatus.Routing;
             _agents["front-desk"].Status = AgentStatus.Processing;
             _agents["front-desk"].CurrentTicket = ticketId;
 
-            await Task.Delay(2000); // Simulate processing time
+            await Task.Delay(1200); // Simulate A2A communication latency
 
-            // Determine which agents to assign
+            // Front desk agent acknowledges and determines routing
             var assignedAgents = DetermineAssignedAgents(ticket);
+            Console.WriteLine($"[MOCK] Assigned agents for ticket {ticketId}: [{string.Join(", ", assignedAgents)}]");
             ticket.AssignedAgents = assignedAgents;
 
-            // Step 2: Process with assigned agents
+            var frontDeskResponse = new AgentResponse
+            {
+                AgentId = "front-desk",
+                AgentType = "front-desk",
+                Response = $"Thank you {ticket.CustomerName}. I've received your inquiry regarding \"{ticket.Subject}\" and I'm coordinating with our specialist team to assist you.",
+                Status = ResponseStatus.Completed,
+                Timestamp = DateTime.UtcNow
+            };
+
+            // LAYER 2: Specialist Agents - Domain Expert Processing
             ticket.Status = TicketStatus.Processing;
             _agents["front-desk"].Status = AgentStatus.Completed;
 
+            var specialistResponses = new List<AgentResponse>();
+
+            // Process with specialized agents using mock A2A protocol
             foreach (var agentId in assignedAgents)
             {
                 if (_agents.TryGetValue(agentId, out var agent))
                 {
                     agent.Status = AgentStatus.Processing;
                     agent.CurrentTicket = ticketId;
-                }
-            }
 
-            await Task.Delay(1500); // Simulate agent processing
+                    await Task.Delay(1800); // Simulate specialist processing time
 
-            // Generate responses
-            var responses = new List<AgentResponse>();
+                    var mockResponse = GenerateEnhancedMockResponse(ticket, agentId);
+                    specialistResponses.Add(mockResponse);
 
-            // Front desk response
-            responses.Add(new AgentResponse
-            {
-                AgentId = "front-desk",
-                AgentType = "front-desk",
-                Response = $"Thank you {ticket.CustomerName}. I've reviewed your {ticket.Category} request and coordinated with our specialized team.",
-                Status = ResponseStatus.Completed,
-                Timestamp = DateTime.UtcNow
-            });
-
-            // Specialized agent responses
-            foreach (var agentId in assignedAgents)
-            {
-                responses.Add(GenerateMockResponse(ticket, agentId));
-
-                if (_agents.TryGetValue(agentId, out var agent))
-                {
                     agent.Status = AgentStatus.Completed;
                     agent.CurrentTicket = null;
                 }
             }
 
-            ticket.Responses = responses;
+            // LAYER 3: Orchestrator Agent - Response Synthesis & Coordination
+            if (specialistResponses.Count > 0)
+            {
+                Console.WriteLine($"[MOCK] Starting orchestrator for ticket {ticketId} with {specialistResponses.Count} specialist responses");
+                _agents["orchestrator"].Status = AgentStatus.Processing;
+                _agents["orchestrator"].CurrentTicket = ticketId;
 
-            // Step 3: Generate final response
-            await Task.Delay(1000);
-            ticket.FinalResponse = GenerateFinalResponse(ticket);
+                await Task.Delay(1500); // Simulate orchestration processing time
+
+                // Orchestrator synthesizes multiple specialist responses
+                var synthesizedResponse = GenerateMockOrchestratorResponse(ticket, specialistResponses);
+
+                // Create final customer response
+                ticket.FinalResponse = GenerateMockFinalCustomerResponse(ticket, synthesizedResponse);
+
+                // Store all responses including the synthesized one
+                var allResponses = new List<AgentResponse> { frontDeskResponse };
+                allResponses.AddRange(specialistResponses);
+                allResponses.Add(synthesizedResponse);
+                ticket.Responses = allResponses;
+
+                _agents["orchestrator"].Status = AgentStatus.Completed;
+                _agents["orchestrator"].CurrentTicket = null;
+                Console.WriteLine($"[MOCK] Orchestrator completed for ticket {ticketId}");
+            }
+            else
+            {
+                Console.WriteLine($"[MOCK] No orchestration needed for ticket {ticketId} - single agent scenario");
+                // Single agent scenario - no orchestration needed
+                ticket.FinalResponse = GenerateSimpleMockFinalResponse(ticket, frontDeskResponse);
+                ticket.Responses = [frontDeskResponse];
+            }
+
             ticket.Status = TicketStatus.Completed;
 
-            // Reset all agents
+            // Reset all agents to idle state
             foreach (var agent in _agents.Values)
             {
                 agent.Status = AgentStatus.Idle;
@@ -176,12 +210,47 @@ public class MockTicketService : ITicketService
         var agents = new List<string>();
         var text = $"{ticket.Subject} {ticket.Description} {ticket.Category}".ToLower();
 
+        // Enhanced scenarios for orchestrator demonstration - check these FIRST
+        // These scenarios will automatically trigger multi-agent responses for better orchestrator showcasing
+        if (text.Contains("login") && (text.Contains("refund") || text.Contains("billing") || text.Contains("payment")))
+        {
+            // Login issues affecting billing access - needs both agents
+            return ["billing", "technical"];
+        }
+        else if (text.Contains("account") && (text.Contains("access") || text.Contains("error")))
+        {
+            // Account access issues often involve both billing and technical aspects
+            return ["billing", "technical"];
+        }
+        else if (text.Contains("system") && text.Contains("charge"))
+        {
+            // System charging issues need both technical diagnosis and billing correction
+            return ["billing", "technical"];
+        }
+        else if (text.Contains("update") || text.Contains("upgrade"))
+        {
+            // Updates often affect both technical functionality and billing
+            return ["billing", "technical"];
+        }
+        else if (text.Contains("broken") && text.Contains("access"))
+        {
+            // Broken access issues - both technical and billing
+            return ["billing", "technical"];
+        }
+        else if (text.Contains("connectivity") && (text.Contains("charge") || text.Contains("bill")))
+        {
+            // Connectivity issues affecting billing
+            return ["billing", "technical"];
+        }
+
+        // Check for billing-related keywords
         if (text.Contains("billing") || text.Contains("payment") || text.Contains("charge") ||
             text.Contains("refund") || text.Contains("invoice") || ticket.Category == "billing")
         {
             agents.Add("billing");
         }
 
+        // Check for technical keywords
         if (text.Contains("technical") || text.Contains("error") || text.Contains("bug") ||
             text.Contains("login") || text.Contains("password") || ticket.Category == "technical")
         {
@@ -194,26 +263,27 @@ public class MockTicketService : ITicketService
             return new List<string>(); // Front desk will handle alone
         }
 
-        return agents;
+        return agents.Distinct().ToList(); // Remove duplicates
     }
 
-    private AgentResponse GenerateMockResponse(CustomerTicket ticket, string agentId)
+    private AgentResponse GenerateEnhancedMockResponse(CustomerTicket ticket, string agentId)
     {
+        // Enhanced responses that will work well with orchestrator synthesis
         var responses = agentId switch
         {
             "billing" => new[]
             {
-                "I've reviewed your billing inquiry and found the issue. A refund has been processed and will appear in 3-5 business days.",
-                "Your account has been updated with the correct charges. I've also added a credit for the inconvenience.",
-                "I've investigated the payment discrepancy and corrected your account balance. You should see the changes reflected immediately."
+                $"I've reviewed {ticket.CustomerName}'s billing inquiry and processed a refund of $45.99 for the unauthorized charge. The refund will appear in 3-5 business days, and I've added account monitoring to prevent future issues.",
+                $"I've investigated the payment discrepancy for {ticket.CustomerName} and found a system error that duplicated the monthly charge. A credit of $29.99 has been applied, and the billing cycle has been corrected.",
+                $"After reviewing {ticket.CustomerName}'s account, I've identified incorrect billing tier assignment. I've updated the account to the correct plan, resulting in a $15.00 monthly reduction going forward."
             },
             "technical" => new[]
             {
-                "I've diagnosed the technical issue and implemented a fix. Please try the solution and let me know if you need further assistance.",
-                "The login problem has been resolved by resetting your authentication tokens. You should be able to access your account now.",
-                "I've identified the bug in the system and deployed a patch. The issue should be resolved within the next hour."
+                $"I've diagnosed {ticket.CustomerName}'s login issue and found expired authentication tokens. I've reset the credentials and implemented two-factor authentication for enhanced security. Login should work immediately.",
+                $"The technical problem reported by {ticket.CustomerName} was caused by a recent system update. I've deployed a targeted fix and verified the functionality is restored. All features should now work correctly.",
+                $"I've identified a compatibility issue affecting {ticket.CustomerName}'s browser configuration. I've provided custom browser settings and updated their user profile to prevent similar issues."
             },
-            _ => new[] { "I've reviewed your request and provided the appropriate assistance." }
+            _ => new[] { $"I've reviewed {ticket.CustomerName}'s request and provided comprehensive assistance tailored to their specific needs." }
         };
 
         return new AgentResponse
@@ -226,26 +296,48 @@ public class MockTicketService : ITicketService
         };
     }
 
-    private string GenerateFinalResponse(CustomerTicket ticket)
+    private AgentResponse GenerateMockOrchestratorResponse(CustomerTicket ticket, List<AgentResponse> specialistResponses)
     {
-        var hasSpecializedResponses = ticket.Responses.Any(r => r.AgentId != "front-desk");
-
-        if (!hasSpecializedResponses)
+        // Create a realistic mock scenario - let's make a combined login + refund issue
+        var combinedScenarios = new[]
         {
-            return $"Dear {ticket.CustomerName},\n\n" +
-                   $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
-                   $"I have reviewed your inquiry and provided assistance with your {ticket.Category} matter. " +
-                   $"If you need any further clarification or have additional questions, please don't hesitate to reach out.\n\n" +
-                   $"Best regards,\nCustomer Service Team";
-        }
+            // Scenario 1: Login issue preventing access to billing
+            $"After coordinating with our billing and technical specialists, I've identified that {ticket.CustomerName} was unable to process their refund request due to login authentication issues. Our technical team has resolved the login problem, and our billing team has now successfully processed the refund. This comprehensive solution addresses both the immediate access issue and the underlying billing concern.",
+            
+            // Scenario 2: Billing error affecting account access
+            $"Our team coordination reveals that {ticket.CustomerName}'s technical difficulties were actually caused by billing system conflicts. The billing team has corrected account inconsistencies, while the technical team has synchronized the user profile. This integrated approach ensures both billing accuracy and system functionality are restored.",
+            
+            // Scenario 3: System update affecting both billing and login
+            $"Through A2A coordination, we've determined that {ticket.CustomerName}'s issues stem from a recent system update that affected both billing calculations and login protocols. Our technical team has implemented compatibility fixes, while our billing team has corrected any calculation errors. This unified response ensures seamless service restoration."
+        };
 
-        var specializedResponses = ticket.Responses.Where(r => r.AgentId != "front-desk").ToList();
-        var responseText = string.Join("\n\n", specializedResponses.Select(r => $"Our {r.AgentType} specialist has addressed your concern: {r.Response}"));
+        return new AgentResponse
+        {
+            AgentId = "orchestrator",
+            AgentType = "orchestrator",
+            Response = combinedScenarios[_random.Next(combinedScenarios.Length)],
+            Status = ResponseStatus.Completed,
+            Timestamp = DateTime.UtcNow
+        };
+    }
 
+    private string GenerateMockFinalCustomerResponse(CustomerTicket ticket, AgentResponse synthesizedResponse)
+    {
         return $"Dear {ticket.CustomerName},\n\n" +
                $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
-               $"{responseText}\n\n" +
-               $"We believe this resolves your inquiry. If you need any further assistance, please don't hesitate to contact us.\n\n" +
+               $"{synthesizedResponse.Response}\n\n" +
+               $"Our coordinated response ensures that all aspects of your inquiry have been thoroughly addressed by our specialized team members working together. " +
+               $"If you need any further assistance or have additional questions, please don't hesitate to contact us.\n\n" +
+               $"Best regards,\nCustomer Service Team";
+    }
+
+    private string GenerateSimpleMockFinalResponse(CustomerTicket ticket, AgentResponse frontDeskResponse)
+    {
+        return $"Dear {ticket.CustomerName},\n\n" +
+               $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
+               $"{frontDeskResponse.Response}\n\n" +
+               $"Our team has reviewed your inquiry and provided assistance with your {ticket.Category} matter. " +
+               $"If you need any further clarification or have additional questions, please don't hesitate to reach out.\n\n" +
                $"Best regards,\nCustomer Service Team";
     }
 
