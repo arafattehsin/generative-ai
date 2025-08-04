@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
-import { User, CreditCard, Wrench, ArrowsClockwise, PaperPlaneTilt, Clock, CheckCircle, ArrowRight } from '@phosphor-icons/react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { User, CreditCard, Wrench, ArrowsClockwise, PaperPlaneTilt, Clock, CheckCircle, ArrowRight, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { ImplementationToggle } from '@/components/ImplementationToggle'
 import { BackendIntegration } from '@/components/BackendIntegration'
@@ -132,6 +133,10 @@ function App() {
   
   // Implementation toggle state
   const [useBackend, setUseBackend] = useState(false)
+  
+  // Collapsible panel states
+  const [implementationPanelOpen, setImplementationPanelOpen] = useState(false)
+  const [backendPanelOpen, setBackendPanelOpen] = useState(false)
   
   // Form state
   const [customerName, setCustomerName] = useState('')
@@ -647,8 +652,55 @@ Customer Service Team`
           </p>
         </div>
 
-        <ImplementationToggle onImplementationChange={setUseBackend} />
-        <BackendIntegration />
+        {/* Implementation Mode Panel */}
+        <Collapsible open={implementationPanelOpen} onOpenChange={setImplementationPanelOpen}>
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardHeader className="pb-3">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="flex items-center justify-between w-full p-0 h-auto hover:bg-blue-100/80 transition-colors duration-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="text-blue-600">📋</div>
+                    <CardTitle className="text-blue-800">Implementation Mode</CardTitle>
+                  </div>
+                  {implementationPanelOpen ? <CaretUp className="h-4 w-4" /> : <CaretDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CardDescription className="text-blue-600 text-left">
+                Toggle between mock and real A2A (Agent-to-Agent) implementations
+              </CardDescription>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <ImplementationToggle onImplementationChange={setUseBackend} />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Backend Integration Panel */}
+        <Collapsible open={backendPanelOpen} onOpenChange={setBackendPanelOpen}>
+          <Card className="border-green-200 bg-green-50/50">
+            <CardHeader className="pb-3">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="flex items-center justify-between w-full p-0 h-auto hover:bg-green-100/80 transition-colors duration-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="text-green-600">🔗</div>
+                    <CardTitle className="text-green-800">Backend API Integration</CardTitle>
+                  </div>
+                  {backendPanelOpen ? <CaretUp className="h-4 w-4" /> : <CaretDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CardDescription className="text-green-600 text-left">
+                Real-time connection to .NET backend API
+              </CardDescription>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <BackendIntegration />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Agent Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
