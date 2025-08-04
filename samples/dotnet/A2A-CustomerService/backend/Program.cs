@@ -1,4 +1,7 @@
+using A2A;
+using A2A.AspNetCore;
 using A2ACustomerService.Configuration;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +48,16 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// ⭐ CRITICAL A2A PROTOCOL COMPLIANCE: Expose agent via A2A protocol
+var taskManager = app.Services.GetRequiredService<ITaskManager>();
+app.MapA2A(taskManager, "/agent");
+
+// Add A2A agent discovery endpoint
+app.MapGet("/api/a2a/agents", (ITaskManager taskManager) =>
+{
+    return Results.Ok(new { agents = new[] { "customer-service-agent" } });
+});
 
 // Add a simple health check endpoint
 app.MapGet("/health", () => new { status = "healthy", timestamp = DateTime.UtcNow });

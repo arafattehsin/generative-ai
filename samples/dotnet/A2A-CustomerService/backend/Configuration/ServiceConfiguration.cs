@@ -1,3 +1,4 @@
+using A2A;
 using A2ACustomerService.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,29 +29,37 @@ public static class ServiceConfiguration
                 new LLMService(azureOpenAIEndpoint, azureOpenAIKey, deploymentName));
         }
 
-        // Register both ticket services as Singletons to maintain state
+        // Register ticket service as Singleton to maintain state
         services.AddSingleton<MockTicketService>();
         services.AddSingleton<A2ATicketService>();
 
-        // Register A2A agents as Singletons since they maintain agent state
+        // Register A2A Customer Service Agent
+        services.AddSingleton<CustomerServiceA2AAgent>();
+
+        // Register individual A2A agents for A2ATicketService
         services.AddSingleton<FrontDeskAgent>();
         services.AddSingleton<BillingAgent>();
         services.AddSingleton<TechnicalAgent>();
         services.AddSingleton<OrchestratorAgent>();
 
-        // Register a factory for ITicketService that decides at runtime
+        // Register A2A Task Manager for Customer Service Agent
+        services.AddSingleton<ITaskManager>(provider =>
+        {
+            var taskManager = new TaskManager();
+            var agent = provider.GetRequiredService<CustomerServiceA2AAgent>();
+            agent.Attach(taskManager);
+            return taskManager;
+        });
+
+        // Register ITicketService based on configuration
         services.AddScoped<ITicketService>(provider =>
         {
             var configService = provider.GetRequiredService<IConfigurationService>();
-
             if (configService.UseRealImplementation)
             {
                 return provider.GetRequiredService<A2ATicketService>();
             }
-            else
-            {
-                return provider.GetRequiredService<MockTicketService>();
-            }
+            return provider.GetRequiredService<MockTicketService>();
         });
 
         return services;

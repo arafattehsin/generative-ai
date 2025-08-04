@@ -12,8 +12,8 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
 
         <!-- A2A .NET SDK Packages -->
-        <PackageReference Include="A2A" Version="*" Condition="false" />
-        <PackageReference Include="A2A.AspNetCore" Version="*" Condition="false" />
+        <PackageReference Include="A2A" Version="0.1.0-preview.2" />
+        <PackageReference Include="A2A.AspNetCore" Version="0.1.0-preview.2" />
 
         <!-- Semantic Kernel for AI processing -->
         <PackageReference Include="Microsoft.SemanticKernel" Version="1.50.0" />

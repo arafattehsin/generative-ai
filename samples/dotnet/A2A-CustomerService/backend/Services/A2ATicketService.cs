@@ -188,14 +188,14 @@ public class A2ATicketService : ITicketService
                 // Orchestrator synthesizes multiple specialist responses
                 var synthesizedResponse = await _orchestratorAgent.SynthesizeResponsesAsync(ticket, specialistResponses);
 
-                // Create final customer response
-                ticket.FinalResponse = await _orchestratorAgent.CreateFinalCustomerResponseAsync(ticket, synthesizedResponse);
-
-                // Store all responses including the synthesized one
-                var allResponses = new List<AgentResponse> { frontDeskResponse };
-                allResponses.AddRange(specialistResponses);
-                allResponses.Add(synthesizedResponse);
-                ticket.Responses = allResponses;
+                // Create final customer response with proper formatting
+                ticket.FinalResponse = $"Dear {ticket.CustomerName},\n\n" +
+                                     $"Thank you for contacting our customer service team regarding '{ticket.Subject}'.\n\n" +
+                                     $"Our A2A agent system has processed your request with specialist coordination.\n\n" +
+                                     $"Based on our analysis, here's your complete resolution:\n\n" +
+                                     $"{synthesizedResponse.Response}\n\n" +
+                                     $"This solution has been coordinated across our specialized departments to ensure all aspects of your concern are addressed.\n\n" +
+                                     $"Best regards,\nA2A Customer Service Team";
 
                 _agents["orchestrator"].Status = AgentStatus.Completed;
                 _agents["orchestrator"].CurrentTicket = null;
@@ -206,7 +206,6 @@ public class A2ATicketService : ITicketService
             {
                 // Single agent scenario - no orchestration needed
                 ticket.FinalResponse = await CreateSimpleFinalResponseAsync(ticket, frontDeskResponse);
-                ticket.Responses = [frontDeskResponse];
 
                 _logger.LogInformation("A2A Processing: Single agent response, no orchestration required");
             }
@@ -254,30 +253,32 @@ public class A2ATicketService : ITicketService
         return agents;
     }
 
-    private async Task<string> CreateSimpleFinalResponseAsync(CustomerTicket ticket, AgentResponse frontDeskResponse)
+    private Task<string> CreateSimpleFinalResponseAsync(CustomerTicket ticket, AgentResponse frontDeskResponse)
     {
         // For single-agent scenarios, create a simple professional response
-        return $"Dear {ticket.CustomerName},\n\n" +
+        var response = $"Dear {ticket.CustomerName},\n\n" +
                $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
                $"{frontDeskResponse.Response}\n\n" +
                $"Our team has reviewed your inquiry and provided assistance with your {ticket.Category} matter. " +
                $"If you need any further clarification or have additional questions, please don't hesitate to reach out.\n\n" +
                $"Best regards,\nCustomer Service Team";
+
+        return Task.FromResult(response);
     }
 
-    public async Task<CustomerTicket?> GetTicketAsync(string ticketId)
+    public Task<CustomerTicket?> GetTicketAsync(string ticketId)
     {
         _tickets.TryGetValue(ticketId, out var ticket);
-        return await Task.FromResult(ticket);
+        return Task.FromResult(ticket);
     }
 
-    public async Task<List<CustomerTicket>> GetAllTicketsAsync()
+    public Task<List<CustomerTicket>> GetAllTicketsAsync()
     {
-        return await Task.FromResult(_tickets.Values.ToList());
+        return Task.FromResult(_tickets.Values.ToList());
     }
 
-    public async Task<List<AgentInfo>> GetAgentsAsync()
+    public Task<List<AgentInfo>> GetAgentsAsync()
     {
-        return await Task.FromResult(_agents.Values.ToList());
+        return Task.FromResult(_agents.Values.ToList());
     }
 }
