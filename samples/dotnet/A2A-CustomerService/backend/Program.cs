@@ -1,4 +1,3 @@
-
 using A2A;
 using A2A.AspNetCore;
 using A2ACustomerService.Configuration;
@@ -53,29 +52,27 @@ app.MapControllers();
 
 
 
-var llmService = app.Services.GetRequiredService<ILLMService>();
 
+var frontDeskAgent = app.Services.GetRequiredService<FrontDeskAgent>();
+var billingAgent = app.Services.GetRequiredService<BillingAgent>();
+var technicalAgent = app.Services.GetRequiredService<TechnicalAgent>();
 
-
-
-// Front Desk Agent
 var frontDeskTaskManager = new TaskManager();
-new FrontDeskAgent(llmService).Attach(frontDeskTaskManager);
+frontDeskAgent.Attach(frontDeskTaskManager);
 app.MapA2A(frontDeskTaskManager, "/frontdesk");
 
-// Billing Agent
 var billingTaskManager = new TaskManager();
-new BillingAgent(llmService).Attach(billingTaskManager);
+billingAgent.Attach(billingTaskManager);
 app.MapA2A(billingTaskManager, "/billing");
 
-// Technical Agent
 var technicalTaskManager = new TaskManager();
-new TechnicalAgent(llmService).Attach(technicalTaskManager);
+technicalAgent.Attach(technicalTaskManager);
 app.MapA2A(technicalTaskManager, "/technical");
 
-// Orchestrator Agent
+var orchestratorAgent = app.Services.GetRequiredService<OrchestratorAgent>();
+
 var orchestratorTaskManager = new TaskManager();
-new OrchestratorAgent(llmService).Attach(orchestratorTaskManager);
+orchestratorAgent.Attach(orchestratorTaskManager);
 app.MapA2A(orchestratorTaskManager, "/orchestrator");
 
 // Add A2A agent discovery endpoint
