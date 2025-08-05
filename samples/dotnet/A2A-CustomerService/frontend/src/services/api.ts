@@ -1,5 +1,5 @@
 // API service for communicating with the A2A Customer Service backend
-const API_BASE_URL = 'https://localhost:5001/api/customerservice';
+const API_BASE_URL = 'http://localhost:5000/api/customerservice';
 
 export interface SubmitTicketRequest {
   customerName: string;
