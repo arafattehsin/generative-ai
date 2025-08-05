@@ -8,20 +8,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+        <!-- OpenAPI/Swagger packages temporarily removed for .NET 9 compatibility -->
 
         <!-- A2A .NET SDK Packages -->
         <PackageReference Include="A2A" Version="0.1.0-preview.2" />
         <PackageReference Include="A2A.AspNetCore" Version="0.1.0-preview.2" />
 
         <!-- Semantic Kernel for AI processing -->
-        <PackageReference Include="Microsoft.SemanticKernel" Version="1.50.0" />
-        <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.50.0" />
+        <PackageReference Include="Microsoft.SemanticKernel" Version="1.61.0" />
+        <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.61.0" />
 
         <!-- For HTTP client and JSON handling -->
-        <PackageReference Include="System.Text.Json" Version="9.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+        <PackageReference Include="System.Text.Json" Version="10.0.0-preview.6.25358.103" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0-preview.6.25358.103" />
     </ItemGroup>
 
 </Project>

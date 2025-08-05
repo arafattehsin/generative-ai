@@ -188,16 +188,17 @@ public class A2ATicketService : ITicketService
                 // Orchestrator synthesizes multiple specialist responses
                 var synthesizedResponse = await _orchestratorAgent.SynthesizeResponsesAsync(ticket, specialistResponses);
 
-                // Create final customer response with proper formatting
+                // Create final customer response
+                ticket.FinalResponse = await _orchestratorAgent.CreateFinalCustomerResponseAsync(ticket, synthesizedResponse);
+
+                // Store the synthesized response as the final customer response
                 ticket.FinalResponse = $"Dear {ticket.CustomerName},\n\n" +
                                      $"Thank you for contacting our customer service team regarding '{ticket.Subject}'.\n\n" +
                                      $"Our A2A agent system has processed your request with specialist coordination.\n\n" +
                                      $"Based on our analysis, here's your complete resolution:\n\n" +
                                      $"{synthesizedResponse.Response}\n\n" +
                                      $"This solution has been coordinated across our specialized departments to ensure all aspects of your concern are addressed.\n\n" +
-                                     $"Best regards,\nA2A Customer Service Team";
-
-                _agents["orchestrator"].Status = AgentStatus.Completed;
+                                     $"Best regards,\nA2A Customer Service Team"; _agents["orchestrator"].Status = AgentStatus.Completed;
                 _agents["orchestrator"].CurrentTicket = null;
 
                 _logger.LogInformation("A2A Layer 3 Complete: Orchestrator created unified response");
@@ -253,32 +254,30 @@ public class A2ATicketService : ITicketService
         return agents;
     }
 
-    private Task<string> CreateSimpleFinalResponseAsync(CustomerTicket ticket, AgentResponse frontDeskResponse)
+    private async Task<string> CreateSimpleFinalResponseAsync(CustomerTicket ticket, AgentResponse frontDeskResponse)
     {
         // For single-agent scenarios, create a simple professional response
-        var response = $"Dear {ticket.CustomerName},\n\n" +
+        return $"Dear {ticket.CustomerName},\n\n" +
                $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
                $"{frontDeskResponse.Response}\n\n" +
                $"Our team has reviewed your inquiry and provided assistance with your {ticket.Category} matter. " +
                $"If you need any further clarification or have additional questions, please don't hesitate to reach out.\n\n" +
                $"Best regards,\nCustomer Service Team";
-
-        return Task.FromResult(response);
     }
 
-    public Task<CustomerTicket?> GetTicketAsync(string ticketId)
+    public async Task<CustomerTicket?> GetTicketAsync(string ticketId)
     {
         _tickets.TryGetValue(ticketId, out var ticket);
-        return Task.FromResult(ticket);
+        return await Task.FromResult(ticket);
     }
 
-    public Task<List<CustomerTicket>> GetAllTicketsAsync()
+    public async Task<List<CustomerTicket>> GetAllTicketsAsync()
     {
-        return Task.FromResult(_tickets.Values.ToList());
+        return await Task.FromResult(_tickets.Values.ToList());
     }
 
-    public Task<List<AgentInfo>> GetAgentsAsync()
+    public async Task<List<AgentInfo>> GetAgentsAsync()
     {
-        return Task.FromResult(_agents.Values.ToList());
+        return await Task.FromResult(_agents.Values.ToList());
     }
 }

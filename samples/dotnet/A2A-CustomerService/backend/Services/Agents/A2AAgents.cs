@@ -1,3 +1,5 @@
+
+using A2A;
 using A2ACustomerService.Models;
 
 namespace A2ACustomerService.Services;
@@ -33,7 +35,7 @@ Provide a professional, helpful response that addresses the customer's specific 
 Be empathetic and solution-oriented.
 ";
 
-        var responseText = await _llmService.GenerateResponseAsync(prompt);
+        var responseText = await _llmService.GenerateTextAsync(prompt, CancellationToken.None);
 
         return new AgentResponse
         {
@@ -63,15 +65,22 @@ As a front desk agent, your role is ONLY to:
 4. Keep it brief and professional
 
 DO NOT:
-- Ask for additional information from the customer
-- Provide detailed solutions or advice
-- Go into specifics about their issue
-- Offer troubleshooting steps
 
 Keep your response to 1-2 sentences maximum. Simply acknowledge and confirm routing to specialists.
 ";
 
         return await CreateResponseAsync(ticket, specificPrompt);
+    }
+
+    public void Attach(ITaskManager taskManager)
+    {
+        taskManager.OnMessageReceived = async (messageSendParams, ct) =>
+        {
+            var ticket = CustomerTicket.FromMessage(messageSendParams.Message);
+            var response = await ProcessTicketAsync(ticket);
+            return response.ToMessage();
+        };
+        taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateFrontDeskCard(agentUrl);
     }
 }
 
@@ -96,6 +105,17 @@ Focus on being clear about financial matters and resolving billing issues.
 
         return await CreateResponseAsync(ticket, specificPrompt);
     }
+
+    public void Attach(ITaskManager taskManager)
+    {
+        taskManager.OnMessageReceived = async (messageSendParams, ct) =>
+        {
+            var ticket = CustomerTicket.FromMessage(messageSendParams.Message);
+            var response = await ProcessTicketAsync(ticket);
+            return response.ToMessage();
+        };
+        taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateBillingCard(agentUrl);
+    }
 }
 
 public class TechnicalAgent : BaseA2AAgent
@@ -118,6 +138,17 @@ Focus on being thorough and providing clear technical solutions.
 ";
 
         return await CreateResponseAsync(ticket, specificPrompt);
+    }
+
+    public void Attach(ITaskManager taskManager)
+    {
+        taskManager.OnMessageReceived = async (messageSendParams, ct) =>
+        {
+            var ticket = CustomerTicket.FromMessage(messageSendParams.Message);
+            var response = await ProcessTicketAsync(ticket);
+            return response.ToMessage();
+        };
+        taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateTechnicalCard(agentUrl);
     }
 }
 
@@ -158,18 +189,11 @@ SPECIALIST AGENT RESPONSES TO SYNTHESIZE:
 {responseDetails}
 
 ORCHESTRATION RULES:
-- Combine all relevant information into a flowing, natural response
-- Remove redundant statements between agents
-- If there are conflicts, acknowledge both perspectives and provide clarity
-- Keep the customer as the focus, not the internal agent process
-- Do not mention 'A2A', 'orchestrator', or internal agent names to the customer
-- Ensure the response fully addresses the customer's original inquiry
-- Maintain empathy and solution-oriented approach
 
 Create a synthesized response that reads as if it came from a single, knowledgeable customer service representative who consulted with various departments. The summary should not exceed more than 30-50 words.
 ";
 
-        var synthesizedText = await _llmService.GenerateResponseAsync(specificPrompt);
+        var synthesizedText = await _llmService.GenerateTextAsync(specificPrompt, CancellationToken.None);
 
         return new AgentResponse
         {
@@ -194,15 +218,20 @@ SYNTHESIZED RESPONSE FROM SPECIALISTS:
 {synthesizedResponse.Response}
 
 FORMAT REQUIREMENTS:
-- Start with proper customer greeting using their name
-- Include the synthesized specialist response
-- End with professional closing and signature
-- Maintain warm, professional tone throughout
-- Keep it concise but complete
 
 Create the final response that will be sent to the customer.
 ";
 
-        return await _llmService.GenerateResponseAsync(finalPrompt);
+        return await _llmService.GenerateTextAsync(finalPrompt, CancellationToken.None);
+    }
+
+    public void Attach(ITaskManager taskManager)
+    {
+        taskManager.OnMessageReceived = async (messageSendParams, ct) =>
+        {
+            // Orchestrator agent expects a list of specialist responses, so this is a placeholder
+            return new Message { Role = MessageRole.Agent, Parts = new List<Part> { new TextPart { Text = "Orchestrator response not implemented." } } };
+        };
+        taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateOrchestratorCard(agentUrl);
     }
 }

@@ -1,6 +1,8 @@
+
 using A2A;
 using A2A.AspNetCore;
 using A2ACustomerService.Configuration;
+using A2ACustomerService.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,7 +16,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger/OpenAPI setup removed for .NET 9 compatibility
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -39,8 +41,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Swagger/OpenAPI middleware removed for .NET 9 compatibility
 }
 
 app.UseCors("AllowReactApp");
@@ -49,14 +50,38 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// ⭐ CRITICAL A2A PROTOCOL COMPLIANCE: Expose agent via A2A protocol
-var taskManager = app.Services.GetRequiredService<ITaskManager>();
-app.MapA2A(taskManager, "/agent");
+
+
+
+var llmService = app.Services.GetRequiredService<ILLMService>();
+
+
+
+
+// Front Desk Agent
+var frontDeskTaskManager = new TaskManager();
+new FrontDeskAgent(llmService).Attach(frontDeskTaskManager);
+app.MapA2A(frontDeskTaskManager, "/frontdesk");
+
+// Billing Agent
+var billingTaskManager = new TaskManager();
+new BillingAgent(llmService).Attach(billingTaskManager);
+app.MapA2A(billingTaskManager, "/billing");
+
+// Technical Agent
+var technicalTaskManager = new TaskManager();
+new TechnicalAgent(llmService).Attach(technicalTaskManager);
+app.MapA2A(technicalTaskManager, "/technical");
+
+// Orchestrator Agent
+var orchestratorTaskManager = new TaskManager();
+new OrchestratorAgent(llmService).Attach(orchestratorTaskManager);
+app.MapA2A(orchestratorTaskManager, "/orchestrator");
 
 // Add A2A agent discovery endpoint
-app.MapGet("/api/a2a/agents", (ITaskManager taskManager) =>
+app.MapGet("/api/a2a/agents", () =>
 {
-    return Results.Ok(new { agents = new[] { "customer-service-agent" } });
+    return Results.Ok(new { agents = new[] { "frontdesk", "billing", "technical", "orchestrator" } });
 });
 
 // Add a simple health check endpoint

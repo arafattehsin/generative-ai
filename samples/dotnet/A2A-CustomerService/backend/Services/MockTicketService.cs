@@ -341,19 +341,19 @@ public class MockTicketService : ITicketService
                $"Best regards,\nCustomer Service Team";
     }
 
-    public Task<CustomerTicket?> GetTicketAsync(string ticketId)
+    public async Task<CustomerTicket?> GetTicketAsync(string ticketId)
     {
         _tickets.TryGetValue(ticketId, out var ticket);
-        return Task.FromResult(ticket);
+        return await Task.FromResult(ticket);
     }
 
-    public Task<List<CustomerTicket>> GetAllTicketsAsync()
+    public async Task<List<CustomerTicket>> GetAllTicketsAsync()
     {
-        return Task.FromResult(_tickets.Values.ToList());
+        return await Task.FromResult(_tickets.Values.ToList());
     }
 
-    public Task<List<AgentInfo>> GetAgentsAsync()
+    public async Task<List<AgentInfo>> GetAgentsAsync()
     {
-        return Task.FromResult(_agents.Values.ToList());
+        return await Task.FromResult(_agents.Values.ToList());
     }
 }

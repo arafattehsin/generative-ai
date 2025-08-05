@@ -2,11 +2,6 @@ using Microsoft.SemanticKernel;
 
 namespace A2ACustomerService.Services;
 
-public interface ILLMService
-{
-    Task<string> GenerateResponseAsync(string prompt);
-    Task<string> AnalyzeTicketAsync(string subject, string description);
-}
 
 public class LLMService : ILLMService
 {
@@ -19,7 +14,8 @@ public class LLMService : ILLMService
             .Build();
     }
 
-    public async Task<string> GenerateResponseAsync(string prompt)
+
+    public async Task<string> GenerateTextAsync(string prompt, CancellationToken cancellationToken)
     {
         try
         {
@@ -44,6 +40,6 @@ Provide a helpful, empathetic response that addresses the customer's concern.
 Keep the response concise and professional.
 ";
 
-        return await GenerateResponseAsync(prompt);
+        return await GenerateTextAsync(prompt, CancellationToken.None);
     }
 }

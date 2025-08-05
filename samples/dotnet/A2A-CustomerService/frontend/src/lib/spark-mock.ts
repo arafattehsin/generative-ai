@@ -19,7 +19,6 @@ declare global {
   llm: async (prompt: string, model: string) => {
     // Mock LLM response - in a real implementation, this would call an actual LLM
     console.log('Mock LLM called with prompt:', prompt, 'model:', model)
-    
     // Simple rule-based responses for demo purposes
     if (prompt.includes('billing') || prompt.includes('payment') || prompt.includes('charge') || prompt.includes('refund')) {
       if (prompt.includes('technical') || prompt.includes('login') || prompt.includes('bug')) {
@@ -27,11 +26,9 @@ declare global {
       }
       return 'billing'
     }
-    
     if (prompt.includes('technical') || prompt.includes('login') || prompt.includes('bug') || prompt.includes('error')) {
       return 'technical'
     }
-    
     // Default response
     return 'front-desk'
   }

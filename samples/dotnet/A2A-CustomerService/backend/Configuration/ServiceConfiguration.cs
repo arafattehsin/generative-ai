@@ -29,29 +29,11 @@ public static class ServiceConfiguration
                 new LLMService(azureOpenAIEndpoint, azureOpenAIKey, deploymentName));
         }
 
-        // Register ticket service as Singleton to maintain state
+        // Register both ticket services
         services.AddSingleton<MockTicketService>();
         services.AddSingleton<A2ATicketService>();
 
-        // Register A2A Customer Service Agent
-        services.AddSingleton<CustomerServiceA2AAgent>();
-
-        // Register individual A2A agents for A2ATicketService
-        services.AddSingleton<FrontDeskAgent>();
-        services.AddSingleton<BillingAgent>();
-        services.AddSingleton<TechnicalAgent>();
-        services.AddSingleton<OrchestratorAgent>();
-
-        // Register A2A Task Manager for Customer Service Agent
-        services.AddSingleton<ITaskManager>(provider =>
-        {
-            var taskManager = new TaskManager();
-            var agent = provider.GetRequiredService<CustomerServiceA2AAgent>();
-            agent.Attach(taskManager);
-            return taskManager;
-        });
-
-        // Register ITicketService based on configuration
+        // Decide which ITicketService to use based on config
         services.AddScoped<ITicketService>(provider =>
         {
             var configService = provider.GetRequiredService<IConfigurationService>();
@@ -59,8 +41,17 @@ public static class ServiceConfiguration
             {
                 return provider.GetRequiredService<A2ATicketService>();
             }
-            return provider.GetRequiredService<MockTicketService>();
+            else
+            {
+                return provider.GetRequiredService<MockTicketService>();
+            }
         });
+
+        // Register agent services as singletons
+        services.AddSingleton<FrontDeskAgent>();
+        services.AddSingleton<BillingAgent>();
+        services.AddSingleton<TechnicalAgent>();
+        services.AddSingleton<OrchestratorAgent>();
 
         return services;
     }
