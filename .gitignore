@@ -57,3 +57,4 @@
 /samples/dotnet/ConvertHeicMCP/obj
 /samples/dotnet/ConvertHeicMCP/.vs/ProjectEvaluation
 /samples/dotnet/MultiAgentOrchestration/src/AppHost/obj/Release/net9.0
+/samples/dotnet/MultiAgentOrchestration/src/AppHost/obj/Debug/net9.0
