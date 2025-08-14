@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*-dist
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vs/
+
+.env
+**/agent-eval-report*
+packages
+.file-manifest
+.devcontainer/
+
+.spark-workbench-id
+
+# .NET Backend specific
+backend/bin/
+backend/obj/
+backend/.vs/
+backend/.vscode/
+backend/*.user
+backend/*.cache
+backend/*.dll
+backend/*.pdb
+backend/*.exe
+backend/Properties/launchSettings.json
+
+# Sensitive configuration files (with actual keys)
+backend/appsettings.Local.json
