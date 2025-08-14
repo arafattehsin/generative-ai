@@ -8,10 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.6.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
-    <PackageReference Include="ModelContextProtocol" Version="0.3.0-preview.2" />
-    <PackageReference Include="System.Drawing.Common" Version="9.0.7" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.7.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.6.25358.103" />
+    <PackageReference Include="ModelContextProtocol" Version="0.3.0-preview.3" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.0-preview.6.25358.103" />
   </ItemGroup>
 
 </Project>
