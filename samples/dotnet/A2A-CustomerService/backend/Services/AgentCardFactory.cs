@@ -10,9 +10,9 @@ public static class AgentCardFactory
         Description = "Handles general customer inquiries, acknowledges requests, and routes to appropriate specialists. Provides brief, professional responses.",
         Url = agentUrl,
         Version = "1.0.0",
-        DefaultInputModes = ["text"],
-        DefaultOutputModes = ["text"],
-        Capabilities = new AgentCapabilities { Streaming = true, PushNotifications = false },
+        DefaultInputModes = ["text/plain"],
+        DefaultOutputModes = ["text/plain"],
+        Capabilities = new AgentCapabilities { Streaming = false, PushNotifications = false },
         Skills = new List<AgentSkill>
         {
             new AgentSkill { Name = "acknowledge_request", Description = "Acknowledge customer requests professionally." },
@@ -28,9 +28,9 @@ public static class AgentCardFactory
         Description = "Handles billing, payment, and account-related inquiries. Explains charges, processes refunds, and resolves payment issues.",
         Url = agentUrl,
         Version = "1.0.0",
-        DefaultInputModes = ["text"],
-        DefaultOutputModes = ["text"],
-        Capabilities = new AgentCapabilities { Streaming = true, PushNotifications = false },
+        DefaultInputModes = ["text/plain"],
+        DefaultOutputModes = ["text/plain"],
+        Capabilities = new AgentCapabilities { Streaming = false, PushNotifications = false },
         Skills = new List<AgentSkill>
         {
             new AgentSkill { Name = "process_refund", Description = "Process refunds or adjustments for customers." },
@@ -46,9 +46,9 @@ public static class AgentCardFactory
         Description = "Provides technical support, troubleshooting, and step-by-step guidance. Explains technical concepts in simple terms.",
         Url = agentUrl,
         Version = "1.0.0",
-        DefaultInputModes = ["text"],
-        DefaultOutputModes = ["text"],
-        Capabilities = new AgentCapabilities { Streaming = true, PushNotifications = false },
+        DefaultInputModes = ["text/plain"],
+        DefaultOutputModes = ["text/plain"],
+        Capabilities = new AgentCapabilities { Streaming = false, PushNotifications = false },
         Skills = new List<AgentSkill>
         {
             new AgentSkill { Name = "diagnose_issue", Description = "Diagnose and resolve technical issues." },
@@ -65,9 +65,9 @@ public static class AgentCardFactory
         Description = "Synthesizes responses from multiple specialist agents, coordinates workflows, and escalates tickets as needed.",
         Url = agentUrl,
         Version = "1.0.0",
-        DefaultInputModes = ["text"],
-        DefaultOutputModes = ["text"],
-        Capabilities = new AgentCapabilities { Streaming = true, PushNotifications = false },
+        DefaultInputModes = ["text/plain"],
+        DefaultOutputModes = ["text/plain"],
+        Capabilities = new AgentCapabilities { Streaming = false, PushNotifications = false },
         Skills = new List<AgentSkill>
         {
             new AgentSkill { Name = "synthesize_responses", Description = "Combine and summarize responses from multiple agents." },
