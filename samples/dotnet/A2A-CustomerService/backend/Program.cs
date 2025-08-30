@@ -86,16 +86,16 @@ app.MapGet("/api/a2a/agents", () =>
 });
 
 // Add well-known Agent Card endpoints for discovery
-app.MapGet("/frontdesk/.well-known/agent.json", () =>
+app.MapGet("/frontdesk/.well-known/agent-card.json", () =>
     Results.Ok(AgentCardFactory.CreateFrontDeskCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/frontdesk")));
 
-app.MapGet("/billing/.well-known/agent.json", () =>
+app.MapGet("/billing/.well-known/agent-card.json", () =>
     Results.Ok(AgentCardFactory.CreateBillingCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/billing")));
 
-app.MapGet("/technical/.well-known/agent.json", () =>
+app.MapGet("/technical/.well-known/agent-card.json", () =>
     Results.Ok(AgentCardFactory.CreateTechnicalCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/technical")));
 
-app.MapGet("/orchestrator/.well-known/agent.json", () =>
+app.MapGet("/orchestrator/.well-known/agent-card.json", () =>
     Results.Ok(AgentCardFactory.CreateOrchestratorCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/orchestrator")));
 
 // Add a simple health check endpoint
