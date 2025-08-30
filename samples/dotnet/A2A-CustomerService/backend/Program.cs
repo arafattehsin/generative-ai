@@ -60,26 +60,43 @@ var technicalAgent = app.Services.GetRequiredService<TechnicalAgent>();
 var frontDeskTaskManager = new TaskManager();
 frontDeskAgent.Attach(frontDeskTaskManager);
 app.MapA2A(frontDeskTaskManager, "/frontdesk");
+app.MapHttpA2A(frontDeskTaskManager, "/frontdesk");
 
 var billingTaskManager = new TaskManager();
 billingAgent.Attach(billingTaskManager);
 app.MapA2A(billingTaskManager, "/billing");
+app.MapHttpA2A(billingTaskManager, "/billing");
 
 var technicalTaskManager = new TaskManager();
 technicalAgent.Attach(technicalTaskManager);
 app.MapA2A(technicalTaskManager, "/technical");
+app.MapHttpA2A(technicalTaskManager, "/technical");
 
 var orchestratorAgent = app.Services.GetRequiredService<OrchestratorAgent>();
 
 var orchestratorTaskManager = new TaskManager();
 orchestratorAgent.Attach(orchestratorTaskManager);
 app.MapA2A(orchestratorTaskManager, "/orchestrator");
+app.MapHttpA2A(orchestratorTaskManager, "/orchestrator");
 
 // Add A2A agent discovery endpoint
 app.MapGet("/api/a2a/agents", () =>
 {
     return Results.Ok(new { agents = new[] { "frontdesk", "billing", "technical", "orchestrator" } });
 });
+
+// Add well-known Agent Card endpoints for discovery
+app.MapGet("/frontdesk/.well-known/agent.json", () =>
+    Results.Ok(AgentCardFactory.CreateFrontDeskCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/frontdesk")));
+
+app.MapGet("/billing/.well-known/agent.json", () =>
+    Results.Ok(AgentCardFactory.CreateBillingCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/billing")));
+
+app.MapGet("/technical/.well-known/agent.json", () =>
+    Results.Ok(AgentCardFactory.CreateTechnicalCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/technical")));
+
+app.MapGet("/orchestrator/.well-known/agent.json", () =>
+    Results.Ok(AgentCardFactory.CreateOrchestratorCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/orchestrator")));
 
 // Add a simple health check endpoint
 app.MapGet("/health", () => new { status = "healthy", timestamp = DateTime.UtcNow });
