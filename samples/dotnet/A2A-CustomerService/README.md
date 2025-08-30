@@ -6,6 +6,8 @@ This implementation is fully compliant with A2A Protocol 0.3.0 specifications, f
 
 Check out my [A2A blog](https://arafattehsin.com/building-agent-to-agent-a2a-communication-for-smarter-ai-systems/) to learn about how I did it as well as how it goes with Model Context Protocol (MCP).
 
+<img width="1217" height="904" alt="image" src="https://github.com/user-attachments/assets/abc6c3c5-0022-411d-84e2-ddb649b02f73" />
+
 ---
 
 ## Table of Contents
