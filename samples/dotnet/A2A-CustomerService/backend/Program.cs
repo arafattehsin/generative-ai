@@ -49,10 +49,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-
-
-
-
 var frontDeskAgent = app.Services.GetRequiredService<FrontDeskAgent>();
 var billingAgent = app.Services.GetRequiredService<BillingAgent>();
 var technicalAgent = app.Services.GetRequiredService<TechnicalAgent>();
@@ -87,16 +83,16 @@ app.MapGet("/api/a2a/agents", () =>
 
 // Add well-known Agent Card endpoints for discovery
 app.MapGet("/frontdesk/.well-known/agent-card.json", () =>
-    Results.Ok(AgentCardFactory.CreateFrontDeskCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/frontdesk")));
+    Results.Ok(AgentCardFactory.CreateFrontDeskCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:5000"}/frontdesk")));
 
 app.MapGet("/billing/.well-known/agent-card.json", () =>
-    Results.Ok(AgentCardFactory.CreateBillingCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/billing")));
+    Results.Ok(AgentCardFactory.CreateBillingCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:5000"}/billing")));
 
 app.MapGet("/technical/.well-known/agent-card.json", () =>
-    Results.Ok(AgentCardFactory.CreateTechnicalCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/technical")));
+    Results.Ok(AgentCardFactory.CreateTechnicalCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:5000"}/technical")));
 
 app.MapGet("/orchestrator/.well-known/agent-card.json", () =>
-    Results.Ok(AgentCardFactory.CreateOrchestratorCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:7041"}/orchestrator")));
+    Results.Ok(AgentCardFactory.CreateOrchestratorCard($"{app.Configuration["A2A:BaseUrl"] ?? "https://localhost:5000"}/orchestrator")));
 
 // Add a simple health check endpoint
 app.MapGet("/health", () => new { status = "healthy", timestamp = DateTime.UtcNow });

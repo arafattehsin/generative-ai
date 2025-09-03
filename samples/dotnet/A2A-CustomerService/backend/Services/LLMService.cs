@@ -27,19 +27,4 @@ public class LLMService : ILLMService
             return "I apologize, but I'm unable to process your request at the moment. Please try again later.";
         }
     }
-
-    public async Task<string> AnalyzeTicketAsync(string subject, string description)
-    {
-        var prompt = $@"
-Analyze this customer service ticket and provide a brief professional response:
-
-Subject: {subject}
-Description: {description}
-
-Provide a helpful, empathetic response that addresses the customer's concern.
-Keep the response concise and professional.
-";
-
-        return await GenerateTextAsync(prompt, CancellationToken.None);
-    }
 }

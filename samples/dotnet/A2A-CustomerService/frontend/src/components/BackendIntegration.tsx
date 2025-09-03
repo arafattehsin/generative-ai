@@ -10,6 +10,17 @@ export function BackendIntegration() {
   const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
   const [implementationMode, setImplementationMode] = useState<'mock' | 'real' | null>(null)
   const [lastCheck, setLastCheck] = useState<string>('')
+  const [agentDiscovery, setAgentDiscovery] = useState<Record<string, { ok: boolean; transport?: string; protocol?: string; url?: string; error?: string }>>({})
+
+  type AgentCard = {
+    protocolVersion?: string
+    name?: string
+    url?: string
+    preferredTransport?: string
+    additionalInterfaces?: Array<{ url: string; transport?: string }>
+  }
+
+  const agentIds = ['frontdesk', 'billing', 'technical', 'orchestrator'] as const
 
   const checkBackend = async () => {
     setBackendStatus('checking')
@@ -24,6 +35,9 @@ export function BackendIntegration() {
           setImplementationMode(statusData.implementation)
           setBackendStatus('connected')
           setLastCheck(new Date().toLocaleTimeString())
+
+          // Fetch agent cards for discovery & transport details
+          await fetchAgentCards()
         } else {
           setBackendStatus('disconnected')
         }
@@ -34,6 +48,24 @@ export function BackendIntegration() {
       setBackendStatus('disconnected')
       console.log('Backend not available:', error)
     }
+  }
+
+  const fetchAgentCards = async () => {
+    const results: Record<string, { ok: boolean; transport?: string; protocol?: string; url?: string; error?: string }> = {}
+    const fetches = agentIds.map(async (id) => {
+      const url = `http://localhost:5000/${id}/.well-known/agent-card.json`
+      try {
+        const res = await fetch(url)
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+        const card: AgentCard = await res.json()
+        const preferred = card.preferredTransport || card.additionalInterfaces?.[0]?.transport || 'unknown'
+        results[id] = { ok: true, transport: preferred, protocol: card.protocolVersion, url: card.url || url }
+      } catch (e: any) {
+        results[id] = { ok: false, error: String(e) }
+      }
+    })
+    await Promise.all(fetches)
+    setAgentDiscovery(results)
   }
 
   const testBackendSubmission = async () => {
@@ -122,6 +154,27 @@ export function BackendIntegration() {
             Last checked: {lastCheck}
           </div>
         )}
+
+        <Separator />
+
+        {/* Agent Discovery & Transport */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium">Agent Discovery</div>
+          <div className="grid grid-cols-1 gap-1 text-xs">
+            {agentIds.map((id) => {
+              const info = agentDiscovery[id]
+              return (
+                <div key={id} className="flex items-center gap-2">
+                  <Badge variant="outline">CARD</Badge>
+                  <code>/{id}/.well-known/agent-card.json</code>
+                  <span className="text-muted-foreground">
+                    {info?.ok ? `OK • Transport: ${info.transport ?? 'unknown'} • Protocol: ${info.protocol ?? 'n/a'}` : 'Unavailable'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
         <Separator />
 

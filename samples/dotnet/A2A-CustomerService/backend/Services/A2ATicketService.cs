@@ -6,23 +6,17 @@ public class A2ATicketService : ITicketService
 {
     private readonly Dictionary<string, CustomerTicket> _tickets = new();
     private readonly Dictionary<string, AgentInfo> _agents = new();
-    private readonly FrontDeskAgent _frontDeskAgent;
-    private readonly BillingAgent _billingAgent;
-    private readonly TechnicalAgent _technicalAgent;
     private readonly OrchestratorAgent _orchestratorAgent;
+    private readonly IA2ATransportClient _a2aClient;
     private readonly ILogger<A2ATicketService> _logger;
 
     public A2ATicketService(
-        FrontDeskAgent frontDeskAgent,
-        BillingAgent billingAgent,
-        TechnicalAgent technicalAgent,
-        OrchestratorAgent orchestratorAgent,
+    OrchestratorAgent orchestratorAgent,
+    IA2ATransportClient a2aTransportClient,
         ILogger<A2ATicketService> logger)
     {
-        _frontDeskAgent = frontDeskAgent;
-        _billingAgent = billingAgent;
-        _technicalAgent = technicalAgent;
         _orchestratorAgent = orchestratorAgent;
+        _a2aClient = a2aTransportClient;
         _logger = logger;
 
         InitializeAgents();
@@ -79,7 +73,7 @@ public class A2ATicketService : ITicketService
         };
     }
 
-    public async Task<CustomerTicket> SubmitTicketAsync(SubmitTicketRequest request)
+    public Task<CustomerTicket> SubmitTicketAsync(SubmitTicketRequest request)
     {
         _logger.LogInformation("Processing ticket submission using A2A protocol for customer: {CustomerName}", request.CustomerName);
 
@@ -101,7 +95,7 @@ public class A2ATicketService : ITicketService
         // Start A2A processing asynchronously
         _ = Task.Run(() => ProcessTicketWithA2AAsync(ticket.Id));
 
-        return ticket;
+        return Task.FromResult(ticket);
     }
 
     private TicketPriority DeterminePriority(string subject, string description)
@@ -131,10 +125,8 @@ public class A2ATicketService : ITicketService
             _agents["front-desk"].Status = AgentStatus.Processing;
             _agents["front-desk"].CurrentTicket = ticketId;
 
-            await Task.Delay(1000); // Simulate A2A communication latency
-
-            // Front desk agent acknowledges and determines routing
-            var frontDeskResponse = await _frontDeskAgent.ProcessTicketAsync(ticket);
+            // Transport-first: send to front-desk over A2A JSON-RPC
+            var frontDeskResponse = await CallAgentAsync("/frontdesk", ticket, "front-desk");
             var assignedAgents = DetermineAssignedAgents(ticket);
             ticket.AssignedAgents = assignedAgents;
 
@@ -157,12 +149,10 @@ public class A2ATicketService : ITicketService
                     _logger.LogInformation("A2A Layer 2: {AgentId} processing ticket {TicketId}", agentId, ticketId);
 
                     // Simulate A2A protocol communication delay
-                    await Task.Delay(1500);
-
                     var agentResponse = agentId switch
                     {
-                        "billing" => await _billingAgent.ProcessTicketAsync(ticket),
-                        "technical" => await _technicalAgent.ProcessTicketAsync(ticket),
+                        "billing" => await CallAgentAsync("/billing", ticket, "billing"),
+                        "technical" => await CallAgentAsync("/technical", ticket, "technical"),
                         _ => throw new InvalidOperationException($"Unknown agent type: {agentId}")
                     };
 
@@ -183,9 +173,7 @@ public class A2ATicketService : ITicketService
 
                 _logger.LogInformation("A2A Layer 3: Orchestrator synthesizing {ResponseCount} specialist responses", specialistResponses.Count);
 
-                await Task.Delay(1200); // Simulate orchestration processing time
-
-                // Orchestrator synthesizes multiple specialist responses
+                // Orchestrator synthesizes multiple specialist responses (in-proc orchestration logic retained)
                 var synthesizedResponse = await _orchestratorAgent.SynthesizeResponsesAsync(ticket, specialistResponses);
 
                 // Create final customer response
@@ -254,15 +242,51 @@ public class A2ATicketService : ITicketService
         return agents;
     }
 
-    private async Task<string> CreateSimpleFinalResponseAsync(CustomerTicket ticket, AgentResponse frontDeskResponse)
+    private Task<string> CreateSimpleFinalResponseAsync(CustomerTicket ticket, AgentResponse frontDeskResponse)
     {
         // For single-agent scenarios, create a simple professional response
-        return $"Dear {ticket.CustomerName},\n\n" +
+        var text = $"Dear {ticket.CustomerName},\n\n" +
                $"Thank you for contacting our customer service team regarding \"{ticket.Subject}\".\n\n" +
                $"{frontDeskResponse.Response}\n\n" +
                $"Our team has reviewed your inquiry and provided assistance with your {ticket.Category} matter. " +
                $"If you need any further clarification or have additional questions, please don't hesitate to reach out.\n\n" +
                $"Best regards,\nCustomer Service Team";
+        return Task.FromResult(text);
+    }
+
+    private static A2A.Message BuildMessageFromTicket(CustomerTicket ticket)
+    {
+        return new A2A.Message
+        {
+            Role = A2A.MessageRole.User,
+            MessageId = Guid.NewGuid().ToString(),
+            ContextId = ticket.Id,
+            Parts = new List<A2A.Part>
+            {
+                new A2A.TextPart { Text = ticket.Description },
+                new A2A.TextPart { Text = ticket.Subject }
+            }
+        };
+    }
+
+    private static AgentResponse MapMessageToAgentResponse(A2A.Message msg, string agentType)
+    {
+        var text = msg?.Parts?.OfType<A2A.TextPart>()?.FirstOrDefault()?.Text ?? "";
+        return new AgentResponse
+        {
+            AgentId = agentType,
+            AgentType = agentType,
+            Response = text,
+            Status = ResponseStatus.Completed,
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    private async Task<AgentResponse> CallAgentAsync(string agentPath, CustomerTicket ticket, string agentType)
+    {
+        var message = BuildMessageFromTicket(ticket);
+        var response = await _a2aClient.SendMessageAsync(agentPath, message, CancellationToken.None);
+        return MapMessageToAgentResponse(response, agentType);
     }
 
     public async Task<CustomerTicket?> GetTicketAsync(string ticketId)

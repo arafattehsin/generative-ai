@@ -14,6 +14,7 @@ export function ImplementationToggle({ onImplementationChange }: ImplementationT
   const [isLoading, setIsLoading] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
   const [isHealthy, setIsHealthy] = useState(false);
+  const [transport, setTransport] = useState<string | null>(null);
 
   const checkStatus = async () => {
     try {
@@ -26,6 +27,18 @@ export function ImplementationToggle({ onImplementationChange }: ImplementationT
       // Get implementation status
       const statusResponse = await customerServiceAPI.getStatus();
       setStatus(statusResponse);
+      // Probe preferred transport from frontdesk agent-card
+      try {
+        const res = await fetch('http://localhost:5000/frontdesk/.well-known/agent-card.json');
+        if (res.ok) {
+          const card = await res.json();
+          setTransport(card?.preferredTransport ?? null);
+        } else {
+          setTransport(null);
+        }
+      } catch {
+        setTransport(null);
+      }
       
       // Notify parent component
       onImplementationChange?.(statusResponse.implementation === 'real');
@@ -33,6 +46,7 @@ export function ImplementationToggle({ onImplementationChange }: ImplementationT
       console.error('Failed to check status:', error);
       setIsHealthy(false);
       setStatus(null);
+      setTransport(null);
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +140,11 @@ export function ImplementationToggle({ onImplementationChange }: ImplementationT
                     </div>
                   )}
                 </Badge>
+                {transport && (
+                  <Badge variant="outline" title="Preferred Transport">
+                    Transport: {transport}
+                  </Badge>
+                )}
               </div>
             </div>
           )}

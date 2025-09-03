@@ -30,14 +30,6 @@ public class SubmitTicketRequest
     public string Category { get; set; } = "general";
 }
 
-public class ProcessingUpdate
-{
-    public string TicketId { get; set; } = string.Empty;
-    public string UpdateType { get; set; } = string.Empty;
-    public object Data { get; set; } = new();
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-}
-
 public class ToggleImplementationRequest
 {
     public bool UseReal { get; set; }

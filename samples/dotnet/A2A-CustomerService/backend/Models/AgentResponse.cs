@@ -8,7 +8,7 @@ public class AgentResponse
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public ResponseStatus Status { get; set; } = ResponseStatus.Pending;
     public Dictionary<string, object> Metadata { get; set; } = new();
-    public A2A.Message ToMessage(string contextId = null)
+    public A2A.Message ToMessage(string? contextId = null)
     {
         // Use provided contextId (e.g., ticket/workflow/correlation ID) if available, else fallback to AgentId
         var metadata = new Dictionary<string, System.Text.Json.JsonElement>
