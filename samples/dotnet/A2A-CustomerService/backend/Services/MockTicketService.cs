@@ -64,7 +64,7 @@ public class MockTicketService : ITicketService
         };
     }
 
-    public async Task<CustomerTicket> SubmitTicketAsync(SubmitTicketRequest request)
+    public Task<CustomerTicket> SubmitTicketAsync(SubmitTicketRequest request)
     {
         var ticket = new CustomerTicket
         {
@@ -84,7 +84,7 @@ public class MockTicketService : ITicketService
         // Start processing asynchronously
         _ = Task.Run(() => ProcessTicketAsync(ticket.Id));
 
-        return ticket;
+        return Task.FromResult(ticket);
     }
 
     private TicketPriority DeterminePriority(string subject, string description)

@@ -53,6 +53,12 @@ public static class ServiceConfiguration
         services.AddSingleton<TechnicalAgent>();
         services.AddSingleton<OrchestratorAgent>();
 
+        // A2A transport client
+        services.AddHttpClient<IA2ATransportClient, A2ATransportClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         return services;
     }
 }

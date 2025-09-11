@@ -103,7 +103,7 @@ Keep your response to 1-2 sentences maximum. Simply acknowledge and confirm rout
                     return BaseA2AAgent.CreateErrorMessage($"Error processing request: {ex.Message}", messageSendParams?.Message?.ContextId);
                 }
             };
-            taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateFrontDeskCard(agentUrl);
+            taskManager.OnAgentCardQuery = (agentUrl, ct) => Task.FromResult(AgentCardFactory.CreateFrontDeskCard(agentUrl));
         }
     }
 
@@ -148,7 +148,7 @@ Focus on being clear about financial matters and resolving billing issues.
                     return BaseA2AAgent.CreateErrorMessage($"Error processing request: {ex.Message}", messageSendParams?.Message?.ContextId);
                 }
             };
-            taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateBillingCard(agentUrl);
+            taskManager.OnAgentCardQuery = (agentUrl, ct) => Task.FromResult(AgentCardFactory.CreateBillingCard(agentUrl));
         }
     }
 
@@ -193,7 +193,7 @@ Focus on being thorough and providing clear technical solutions.
                     return BaseA2AAgent.CreateErrorMessage($"Error processing request: {ex.Message}", messageSendParams?.Message?.ContextId);
                 }
             };
-            taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateTechnicalCard(agentUrl);
+            taskManager.OnAgentCardQuery = (agentUrl, ct) => Task.FromResult(AgentCardFactory.CreateTechnicalCard(agentUrl));
         }
     }
 
@@ -204,7 +204,7 @@ Focus on being thorough and providing clear technical solutions.
         {
         }
 
-        public override async Task<AgentResponse> ProcessTicketAsync(CustomerTicket ticket)
+        public override Task<AgentResponse> ProcessTicketAsync(CustomerTicket ticket)
         {
             // This method won't be used for the orchestrator as it handles multiple responses
             throw new NotImplementedException("Use SynthesizeResponsesAsync for orchestrator agent");
@@ -272,19 +272,20 @@ Create the final response that will be sent to the customer.
 
         public void Attach(ITaskManager taskManager)
         {
-            taskManager.OnMessageReceived = async (messageSendParams, ct) =>
+            taskManager.OnMessageReceived = (messageSendParams, ct) =>
             {
                 try
                 {
                     // Orchestrator agent expects a list of specialist responses, so this is a placeholder
-                    return new Message { Role = MessageRole.Agent, Parts = new List<Part> { new TextPart { Text = "Orchestrator response not implemented." } } };
+                    var msg = new Message { Role = MessageRole.Agent, Parts = new List<Part> { new TextPart { Text = "Orchestrator response not implemented." } } };
+                    return Task.FromResult(msg);
                 }
                 catch (Exception ex)
                 {
-                    return BaseA2AAgent.CreateErrorMessage($"Error processing request: {ex.Message}", messageSendParams?.Message?.ContextId);
+                    return Task.FromResult(BaseA2AAgent.CreateErrorMessage($"Error processing request: {ex.Message}", messageSendParams?.Message?.ContextId));
                 }
             };
-            taskManager.OnAgentCardQuery = async (agentUrl, ct) => AgentCardFactory.CreateOrchestratorCard(agentUrl);
+            taskManager.OnAgentCardQuery = (agentUrl, ct) => Task.FromResult(AgentCardFactory.CreateOrchestratorCard(agentUrl));
         }
     }
 }
