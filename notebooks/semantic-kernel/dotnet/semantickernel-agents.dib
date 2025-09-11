@@ -77,89 +77,110 @@ This also contains an additional method for creating a kernel which will be used
 #pragma warning disable SKEXP0001
 #pragma warning disable SKEXP0002
 
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using ChatTokenUsage = OpenAI.Chat.ChatTokenUsage;
 using System.Text.Json;
+using UsageDetails = Microsoft.Extensions.AI.UsageDetails;
 
-    private static readonly JsonSerializerOptions s_jsonOptionsCache = new() { WriteIndented = true };
+private static readonly JsonSerializerOptions s_jsonOptionsCache = new() { WriteIndented = true };
 
     public static string AsJson(this object obj)
     {
         return JsonSerializer.Serialize(obj, s_jsonOptionsCache);
     }
 
-     protected void WriteAgentChatMessage(ChatMessageContent message)
- {
-     // Include ChatMessageContent.AuthorName in output, if present.
-     string authorExpression = message.Role == AuthorRole.User ? string.Empty : FormatAuthor();
-     // Include TextContent (via ChatMessageContent.Content), if present.
-     string contentExpression = string.IsNullOrWhiteSpace(message.Content) ? string.Empty : message.Content;
-     bool isCode = message.Metadata?.ContainsKey(OpenAIAssistantAgent.CodeInterpreterMetadataKey) ?? false;
-     string codeMarker = isCode ? "\n  [CODE]\n" : " ";
-     System.Console.WriteLine($"\n# {message.Role}{authorExpression}:{codeMarker}{contentExpression}");
+public static string DefaultIfEmpty(this string text, string? defaultText = null) =>
+    string.IsNullOrWhiteSpace(text) ? defaultText ?? string.Empty : text;
 
-     // Provide visibility for inner content (that isn't TextContent).
-     foreach (KernelContent item in message.Items)
-     {
-         if (item is AnnotationContent annotation)
-         {
-             if (annotation.Kind == AnnotationKind.UrlCitation)
-             {
-                 Console.WriteLine($"  [{item.GetType().Name}] {annotation.Label}: {annotation.ReferenceId} - {annotation.Title}");
-             }
-             else
-             {
-                 Console.WriteLine($"  [{item.GetType().Name}] {annotation.Label}: File #{annotation.ReferenceId}");
-             }
-         }
-         else if (item is ActionContent action)
-         {
-             Console.WriteLine($"  [{item.GetType().Name}] {action.Text}");
-         }
-         else if (item is ReasoningContent reasoning)
-         {
-             Console.WriteLine($"  [{item.GetType().Name}] {reasoning.Text.DefaultIfEmpty("Thinking...")}");
-         }
-         else if (item is FileReferenceContent fileReference)
-         {
-             Console.WriteLine($"  [{item.GetType().Name}] File #{fileReference.FileId}");
-         }
-         else if (item is ImageContent image)
-         {
-             Console.WriteLine($"  [{item.GetType().Name}] {image.Uri?.ToString() ?? image.DataUri ?? $"{image.Data?.Length} bytes"}");
-         }
-         else if (item is FunctionCallContent functionCall)
-         {
-             Console.WriteLine($"  [{item.GetType().Name}] {functionCall.Id}");
-         }
-         else if (item is FunctionResultContent functionResult)
-         {
-             Console.WriteLine($"  [{item.GetType().Name}] {functionResult.CallId} - {functionResult.Result?.AsJson() ?? "*"}");
-         }
-     }
+protected void WriteAgentChatMessage(ChatMessageContent message)
+{
+    // Include ChatMessageContent.AuthorName in output, if present.
+    string authorExpression = message.Role == AuthorRole.User ? string.Empty : FormatAuthor();
+    // Include TextContent (via ChatMessageContent.Content), if present.
+    string contentExpression = string.IsNullOrWhiteSpace(message.Content) ? string.Empty : message.Content;
+    bool isCode = message.Metadata?.ContainsKey(OpenAIAssistantAgent.CodeInterpreterMetadataKey) ?? false;
+    string codeMarker = isCode ? "\n  [CODE]\n" : " ";
+    System.Console.WriteLine($"\n# {message.Role}{authorExpression}:{codeMarker}{contentExpression}");
 
-     if (message.Metadata?.TryGetValue("Usage", out object? usage) ?? false)
-     {
-         else if (usage is ChatTokenUsage chatUsage)
-         {
-             WriteUsage(chatUsage.TotalTokenCount, chatUsage.InputTokenCount, chatUsage.OutputTokenCount);
-         }
-     }
+    // Provide visibility for inner content (that isn't TextContent).
+    foreach (KernelContent item in message.Items)
+    {
+        if (item is AnnotationContent annotation)
+        {
+            if (annotation.Kind == AnnotationKind.UrlCitation)
+            {
+                Console.WriteLine($"  [{item.GetType().Name}] {annotation.Label}: {annotation.ReferenceId} - {annotation.Title}");
+            }
+            else
+            {
+                Console.WriteLine($"  [{item.GetType().Name}] {annotation.Label}: File #{annotation.ReferenceId}");
+            }
+        }
+        else if (item is ActionContent action)
+        {
+            Console.WriteLine($"  [{item.GetType().Name}] {action.Text}");
+        }
+        else if (item is ReasoningContent reasoning)
+        {
+            Console.WriteLine($"  [{item.GetType().Name}] {reasoning.Text.DefaultIfEmpty("Thinking...")}");
+        }
+        else if (item is FileReferenceContent fileReference)
+        {
+            Console.WriteLine($"  [{item.GetType().Name}] File #{fileReference.FileId}");
+        }
+        else if (item is ImageContent image)
+        {
+            Console.WriteLine($"  [{item.GetType().Name}] {image.Uri?.ToString() ?? image.DataUri ?? $"{image.Data?.Length} bytes"}");
+        }
+        else if (item is FunctionCallContent functionCall)
+        {
+            Console.WriteLine($"  [{item.GetType().Name}] {functionCall.Id}");
+        }
+        else if (item is FunctionResultContent functionResult)
+        {
+            Console.WriteLine($"  [{item.GetType().Name}] {functionResult.CallId} - {functionResult.Result?.AsJson() ?? "*"}");
+        }
+    }
 
-     string FormatAuthor() => message.AuthorName is not null ? $" - {message.AuthorName ?? " * "}" : string.Empty;
+    if (message.Metadata?.TryGetValue("Usage", out object? usage) ?? false)
+    {
+        if (usage is ChatTokenUsage chatUsage)
+        {
+            WriteUsage(chatUsage.TotalTokenCount, chatUsage.InputTokenCount, chatUsage.OutputTokenCount);
+        }
+        else if (usage is UsageDetails usageDetails)
+        {
+            WriteUsage(usageDetails.TotalTokenCount ?? 0, usageDetails.InputTokenCount ?? 0, usageDetails.OutputTokenCount ?? 0);
+        }
+    }
 
-     void WriteUsage(long totalTokens, long inputTokens, long outputTokens)
-     {
-         Console.WriteLine($"  [Usage] Tokens: {totalTokens}, Input: {inputTokens}, Output: {outputTokens}");
-     }
- }
+    string FormatAuthor() => message.AuthorName is not null ? $" - {message.AuthorName ?? " * "}" : string.Empty;
+
+    void WriteUsage(long totalTokens, long inputTokens, long outputTokens)
+    {
+        Console.WriteLine($"  [Usage] Tokens: {totalTokens}, Input: {inputTokens}, Output: {outputTokens}");
+    }
+}
+
+public class OrchestrationMonitor
+{
+    public ChatHistory History { get; } = [];
+
+    public ValueTask ResponseCallbackWithHistory(ChatMessageContent response)
+    {
+        History.Add(response);
+        return ValueTask.CompletedTask;
+    }
+}
 
     
 
-    async static Task InvokeAgentAsync(string input, ChatCompletionAgent agent, ChatHistoryAgentThread chat)
+    async Task InvokeAgentAsync(string input, ChatCompletionAgent agent, ChatHistoryAgentThread chat)
     {
         ChatMessageContent message = new(AuthorRole.User, input);
         WriteAgentChatMessage(message);
@@ -169,34 +190,6 @@ using System.Text.Json;
             WriteAgentChatMessage(response);
         }
     }
-
-    public Kernel CreateKernelWithChatCompletion()
-    {
-        //Create Kernel builder
-        var builder = Kernel.CreateBuilder();
-
-        builder.AddAzureOpenAIChatCompletion("gpt-4o", azureOpenAIEndpoint, azureOpenAIKey, "gpt-4o-service");
-
-#pragma warning disable SKEXP0070
-        builder.AddGoogleAIGeminiChatCompletion(modelId: "gemini-2.0-flash", apiKey: googleGeminiAPIKey, apiVersion: GoogleAIVersion.V1, serviceId: "gemini-service");
-
-        
-        //builder.AddOllamaChatCompletion("llama3.2", new Uri("http://localhost:11434"), "ollama-service");
-        //builder.AddOpenAIChatCompletion("Phi-4-mini-instruct-cuda-gpu", apiKey: "", endpoint: new Uri("http://localhost:5273/v1"), serviceId: "phi-4"); 
-
-        return builder.Build();
-    }
-
-protected sealed class OrchestrationMonitor
-{
-    public ChatHistory History { get; } = [];
-
-    public ValueTask ResponseCallback(ChatMessageContent response)
-    {
-        this.History.Add(response);
-        return ValueTask.CompletedTask;
-    }
-}
 
 #!markdown
 
