@@ -236,8 +236,6 @@ We wrap the budget-evaluation tool with an approval layer so sensitive operation
 using System.Linq;
 
 #pragma warning disable
-#pragma warning disable
-
 // Step 1: Create the base AI function from the static method
 var budgetFunction = AIFunctionFactory.Create(BudgetAdvisor.EvaluateTotalCostAsync);
 // var flightFunction = AIFunctionFactory.Create(FlightTracker.TrackFlightAsync);
