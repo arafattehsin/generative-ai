@@ -150,7 +150,7 @@ public class FlightTracker
 [return: Description("Flight details and status")]
 public static async Task<string> TrackFlightAsync(
 [Description("IATA code for the source location")] string source,
-[Description("IATA code for the designation location")] string destination,
+[Description("IATA code for the destination location")] string destination,
 [Description("IATA code for the flight")] string flightNumber,
 [Description("Count of flights")] int limit)
 {
