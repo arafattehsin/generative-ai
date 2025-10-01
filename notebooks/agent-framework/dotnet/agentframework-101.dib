@@ -1,0 +1,745 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"name":"csharp"},{"name":"fsharp","languageName":"F#","aliases":["f#","fs"]},{"name":"html","languageName":"HTML"},{"name":"http","languageName":"HTTP"},{"name":"javascript","languageName":"JavaScript","aliases":["js"]},{"name":"mermaid","languageName":"Mermaid"},{"name":"pwsh","languageName":"PowerShell","aliases":["powershell"]},{"name":"value"}]}}
+
+#!markdown
+
+# Microsoft Agent Framework - The Starter Guide
+
+`Created by Arafat Tehsin`
+
+Microsoft Agent Framework is an open-source .NET library in the Microsoft.Extensions.AI family for building reliable AI agents and multi-agent workflows. It provides clear primitives for composing agents, calling tools, managing memory, and persisting conversations.
+
+It builds on lessons from Microsoft Semantic Kernel and AutoGen, providing a forward-looking, unified path for agentic development at Microsoft. Many patterns here will feel familiar if you've used those projects, with a cleaner surface area and multi-agent orchestration built-in.
+
+What this notebook covers:
+
+- Basics: single-agent chat and stateful threads.
+- Tools: function tools and human-in-the-loop approvals.
+- Structured output, persistence, and multimodal (images).
+- Agent-as-Function composition and custom memory with multi-user personalization.
+
+Learn more: https://github.com/microsoft/agent-framework
+
+This notebook uses nightly packages and Azure OpenAI for the chat backend:
+
+- Azure auth defaults to `AzureCliCredential` — run `az login` beforehand.
+- Provide your Azure OpenAI endpoint in the `AOI_ENDPOINT_SWDN` environment variable.
+- Optionally set `AOI_KEY_SWDN` if you prefer API key auth.
+
+#!csharp
+
+string azureOpenAIKey = Environment.GetEnvironmentVariable("AOI_KEY_SWDN");
+string azureOpenAIEndpoint = Environment.GetEnvironmentVariable("AOI_ENDPOINT_SWDN");
+
+#!markdown
+
+### Configure environment variables
+
+We read configuration from environment variables to avoid hardcoding secrets in the notebook and to support safe rotation in shared environments.
+
+- `AOI_ENDPOINT_SWDN`: Your Azure OpenAI endpoint (e.g., https://<resource>.openai.azure.com)
+- `AOI_KEY_SWDN` (optional with CLI auth): Azure OpenAI API key if you prefer key-based auth over `AzureCliCredential`.
+
+Business value: Keeps credentials out of source control, enables CI/CD-friendly configuration.
+Concept: Environment-based configuration and secret hygiene.
+
+#!markdown
+
+## Setup: packages and chat client
+
+About the code that follows:
+
+- `AzureOpenAIClient` is created with your endpoint and `AzureCliCredential`.
+- The deployment/model name used is `gpt-4o`. Change it to match your Azure OpenAI deployment.
+- If you want to use an API key instead of CLI auth, replace the credential with `new AzureKeyCredential(azureOpenAIKey)` when constructing the client.
+
+Tip: If packages fail to restore, ensure you're on the latest .NET SDK and have network access to the feeds referenced by the nightly packages in the Agent Framework repo.
+
+#!csharp
+
+#r "nuget: Microsoft.Agents.AI, 1.0.0-preview.251001.3"
+#r "nuget: Microsoft.Agents.AI.OpenAI, 1.0.0-preview.251001.3"
+#r "nuget: Azure.Identity, *-*"
+#r "nuget: Azure.AI.OpenAI, *-*"
+#r "nuget: OpenAI, *-*"
+
+using Azure.AI.OpenAI;
+using Azure.Identity;
+using Microsoft.Agents.AI;
+using OpenAI;
+
+var openAiClient = new AzureOpenAIClient(
+    new Uri(azureOpenAIEndpoint),
+    new AzureCliCredential());
+
+var chatClient = openAiClient.GetChatClient("gpt-4o");
+
+#!markdown
+
+### Create a simple agent - Social Media Post Generator
+
+In this agent, we're using a `ChatClient` to create an Agent with the relevant instructions and name. Then this agent is provided an input and invoked through `RunAsync` method.
+
+#!csharp
+
+AIAgent agent = chatClient.CreateAIAgent(
+    "An AI agent that helps you write professional social media posts.",
+    "GhostWriter");
+
+string userInput = "I need to write a LinkedIn post about the benefits of customer feedback.";
+
+// Invoke the agent and output the text result.
+Console.WriteLine(await agent.RunAsync(userInput));
+
+// // Invoke the agent with streaming support.
+// await foreach (var update in agent.RunStreamingAsync(userInput))
+// {
+//     Console.WriteLine(update);
+// }
+
+#!markdown
+
+### Introducing threads for stateful conversations
+
+Here, we reuse the same thread to keep context between messages. After asking for Sydney’s weather, the follow-up "What about tomorrow?" works because the thread stores prior turns.
+
+It reduces user repetition and improves multi-turn completion rates. `AgentThread` retains conversation state; pass the same thread to `RunAsync`.
+
+#!csharp
+
+using Microsoft.Agents.AI;
+using Azure.AI.OpenAI;
+using Azure.Identity;
+using OpenAI;
+
+AIAgent agent = chatClient.CreateAIAgent(
+    "You are an agent designed to query and retrieve information about the weather of a given location. If you have been asked to provide information about two distinguish locations then you need to get the information appropriately. For now, just make it up, you do not have to call any service.",
+    "WeatherAgent");
+
+string userInput = "What is the weather in Sydney?";
+
+// Invoke the agent and output the text result.
+AgentThread thread = agent.GetNewThread();
+Console.WriteLine(await agent.RunAsync(userInput, thread));
+
+string newUserInput = "What about tomorrow?";
+Console.WriteLine(await agent.RunAsync(newUserInput, thread));
+
+#!markdown
+
+### Create a function tool - Flight Tracker
+
+This cell defines a simple tool as a static C# method with `Description` attributes for parameters and return values. We’ll later expose it to an agent using `AIFunctionFactory.Create(...)` so the agent can call it when the user asks about flights.
+
+#!csharp
+
+using System;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Net.Http;
+using System.ComponentModel;
+
+public class FlightTracker
+{
+    private static string flightAPIKey = Environment.GetEnvironmentVariable("AVIATIONSTACK_KEY");
+    private static readonly HttpClient client = new HttpClient();
+
+[Description("Tracks the flight status of a provided source and destination")]
+[return: Description("Flight details and status")]
+public static async Task<string> TrackFlightAsync(
+[Description("IATA code for the source location")] string source,
+[Description("IATA code for the designation location")] string destination,
+[Description("IATA code for the flight")] string flightNumber,
+[Description("Count of flights")] int limit)
+{
+    string url = $"http://api.aviationstack.com/v1/flights?access_key={flightAPIKey}&dep_iata={source}&arr_iata={destination}&limit={limit}&flight_iata={flightNumber}";
+
+    var response = await client.GetAsync(url);
+    response.EnsureSuccessStatusCode();
+    string responseBody = await response.Content.ReadAsStringAsync();
+
+  
+  return responseBody;
+}
+
+}
+
+#!markdown
+
+### Use the tool in an agent - Flight Tracker Agent
+
+Here we wire the `FlightTracker.TrackFlightAsync` function into an agent via `AIFunctionFactory.Create(...)`. The agent interprets the user’s intent (flight status) and invokes the tool with the right arguments. Streaming is optional and shown commented.
+
+#!csharp
+
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+
+AIAgent agent = chatClient.CreateAIAgent(
+    "You are an agent responsible for tracking the flight statuses between source and the destination.",
+    "FlightTrackerAgent",
+    tools: [AIFunctionFactory.Create(FlightTracker.TrackFlightAsync)]);
+
+string userInput = "Track the flight status of from Sydney to Melbourne.";
+Console.WriteLine(await agent.RunAsync(userInput));
+
+// Streaming agent interaction with function tools.
+// await foreach (var update in agent.RunStreamingAsync(userInput))
+// {
+//     Console.WriteLine(update);
+// }
+
+#!markdown
+
+### Human in the loop
+
+This section introduces a lightweight BudgetAdvisor tool that determines whether a proposed itinerary is over or under a user's budget. We use it to demonstrate human-in-the-loop control: the agent must request your approval before invoking this tool.
+
+This adds oversight for sensitive actions and builds user trust.
+
+Human-in-the-loop approvals with a gated tool (BudgetAdvisor) prior to execution.
+
+#!csharp
+
+public class BudgetAdvisor
+{
+    [Description("Evaluate the total cost of the itinerary")]
+    [return: Description("over or under budget")]
+    public static async Task<string> EvaluateTotalCostAsync(
+        [Description("Total user's budget")] int userBudget,
+        [Description("Estimated budget")] int estimatedBudget
+    )
+    {
+        // If an estimated budget is over the user's budget, return that it is over budget
+        if (estimatedBudget > userBudget)
+        {
+            return "over budget";
+        }
+        else
+        {
+            return "under budget";
+
+        }
+    }
+}
+
+#!markdown
+
+### Add approvals to tool calls
+
+We wrap the budget-evaluation tool with an approval layer so sensitive operations require a user decision. The agent emits `FunctionApprovalRequest` items, and we handle them in a loop—asking the user to approve or deny, then resuming the agent with the response.
+
+#!csharp
+
+using System.Linq;
+
+#pragma warning disable
+#pragma warning disable
+
+// Step 1: Create the base AI function from the static method
+var budgetFunction = AIFunctionFactory.Create(BudgetAdvisor.EvaluateTotalCostAsync);
+// var flightFunction = AIFunctionFactory.Create(FlightTracker.TrackFlightAsync);
+
+// Step 2: Wrap the AI function with an approval-required wrapper
+var approvalFunction = new ApprovalRequiredAIFunction(budgetFunction);
+
+// Step 3: Prepare the tools collection for the agent
+var tools = new[] { approvalFunction };
+
+// Step 4: Create the agent using the prepared tools
+AIAgent agent = chatClient.CreateAIAgent(
+    "You are an agent responsible for planning a trip itinerary within a specified budget. Your budget is 1500 AUD",
+    "TripPlannerAgent",
+    tools: tools);
+
+string userInput = "Plan a trip to New Zealand including flights, accommodation, and activities including the total cost.";
+
+AgentThread thread = agent.GetNewThread();
+var response = await agent.RunAsync(userInput, thread);
+
+var userInputRequests = response.UserInputRequests.ToList();
+
+while (userInputRequests.Count > 0)
+{
+    // Ask the user to approve each function call request.
+    // For simplicity, we are assuming here that only function approval requests are being made.
+    var userInputResponses = new List<ChatMessage>();
+    foreach (var functionApprovalRequest in userInputRequests.OfType<FunctionApprovalRequestContent>())
+    {
+        Console.WriteLine($"The agent would like to invoke the following function, please reply Y to approve: Name {functionApprovalRequest.FunctionCall.Name}");
+        var input = await Microsoft.DotNet.Interactive.CSharp.CSharpKernel.GetInputAsync("Approve? (Y/N)");
+        bool approved = input?.Equals("Y", StringComparison.OrdinalIgnoreCase) ?? false;
+        userInputResponses.Add(new ChatMessage(ChatRole.User, [functionApprovalRequest.CreateResponse(approved)]));
+    }
+
+    //Console.WriteLine($"\n Pre-Agent: {response}");
+
+    // Pass the user input responses back to the agent for further processing.
+    response = await agent.RunAsync(userInputResponses, thread);
+    userInputRequests = response.UserInputRequests.ToList();
+
+    Console.WriteLine($"\nAgent: {response}");
+    // For streaming use:
+    // updates = await agent.RunStreamingAsync(userInputResponses, thread).ToListAsync();
+    // userInputRequests = updates.SelectMany(x => x.UserInputRequests).ToList();
+}
+
+#!markdown
+
+#### Define a schema for structured responses
+
+We declare a simple `Appointment` POCO to shape the model’s response. This enables reliable parsing and downstream automation (calendar/ticket creation) without brittle text scraping.
+
+Consistent data for integrations and audit. JSON schema-constrained output mapped to a typed model.
+
+#!csharp
+
+using System.Text.Json.Serialization;
+
+public class Appointment
+{
+    [JsonPropertyName("date")]
+    public string? Date { get; set; }
+
+    [JsonPropertyName("time")]
+    public string? Time { get; set; }
+
+    [JsonPropertyName("location")]
+    public string? Location { get; set; }
+
+    [JsonPropertyName("furtherquestion")]
+    public string? FurtherQuestion { get; set; }
+
+    [JsonPropertyName("iscomplete")]
+    public bool IsComplete { get; set; }
+    
+}
+
+#!markdown
+
+#### Guide the dialog and parse JSON
+
+We set the response format to the appointment schema, loop until all fields are collected, and deserialize the JSON into our POCO. Only missing fields trigger follow-up questions.
+
+Fewer back-and-forths and clean hand-off to systems.
+
+`ChatResponseFormat.ForJsonSchema` + `Deserialize<T>()` with a prompt loop.
+
+#!csharp
+
+using System.Text.Json;
+
+ChatClientAgentOptions agentOptions = new(name: "AppointmentAssistant", instructions: "You are an assistant that helps schedule appointments based on user preferences. Keep asking further questions until you have all the information needed to schedule the appointment.")
+{
+    ChatOptions = new()
+    {
+        ResponseFormat = ChatResponseFormat.ForJsonSchema(
+            schema: AIJsonUtilities.CreateJsonSchema(typeof(Appointment)),
+            schemaName: "AppointmentInfo",
+            schemaDescription: "Information about an appointment including the date, time, and location")
+    }
+};
+
+AIAgent agent = chatClient.CreateAIAgent(
+    agentOptions);
+
+AgentThread thread = agent.GetNewThread();
+Appointment? appointment = null;
+bool isContinue = true;
+
+// First prompt - ask the user for appointment details
+string? userInput = await Microsoft.DotNet.Interactive.CSharp.CSharpKernel.GetInputAsync("Please provide the appointment details?");
+
+while (isContinue)
+{
+    // Send the user's input (or previous agent prompt reply) to the agent
+    var response = await agent.RunAsync(userInput, thread);
+
+    // Try to deserialize structured appointment info
+    appointment = response.Deserialize<Appointment>(JsonSerializerOptions.Web);
+
+    if (appointment != null && appointment.IsComplete)
+    {
+        isContinue = false;
+        break;
+    }
+    else
+    {
+        userInput = await Microsoft.DotNet.Interactive.CSharp.CSharpKernel.GetInputAsync(appointment.FurtherQuestion);
+    }
+}
+
+// Ensure appointment is not null before printing
+appointment ??= new Appointment();
+
+Console.WriteLine($"Appointment Details:\nDate: {appointment.Date}\nTime: {appointment.Time}\nLocation: {appointment.Location}");
+
+#!markdown
+
+#### Save conversation state
+
+We serialize the `AgentThread` to a `JsonElement` and write it to storage (a temp file here). This lets users resume complex tasks later without repeating details.
+
+This enables the continuity across sessions and devices. `AgentThread.Serialize()` to persist conversation context.
+
+#!csharp
+
+using System.IO;
+
+AIAgent agent = chatClient.CreateAIAgent(
+    "You are an assistant that helps schedule medical appointments based on user preferences. Keep asking further questions until you have all the information needed to schedule the appointment.",
+    "MedicalAssistant");
+
+// Start a new thread for the agent conversation.
+AgentThread thread = agent.GetNewThread();
+
+// Run the agent with a new thread.
+Console.WriteLine(await agent.RunAsync("I am James, I usually book with Dr. Sandra, can you please find me a better slot with her on 19th November?", thread));
+
+// Serialize the thread state to a JsonElement, so it can be stored for later use.
+JsonElement serializedThread = thread.Serialize();
+
+// Save the serialized thread to a temporary file (for demonstration purposes).
+string tempFilePath = Path.GetTempFileName();
+await File.WriteAllTextAsync(tempFilePath, JsonSerializer.Serialize(serializedThread));
+
+Console.WriteLine($"Serialized thread saved to: {tempFilePath}");
+
+#!markdown
+
+#### Resume from storage
+
+We load the serialized thread, deserialize it, and continue the conversation seamlessly—preserving context and prior decisions.
+
+It reduces friction and higher task completion. `agent.DeserializeThread(...)` to restore state and proceed.
+
+#!csharp
+
+using System.Text.Json.Serialization;
+using System.Text.Json;
+
+// Load the serialized thread from the temporary file (for demonstration purposes).
+JsonElement reloadedSerializedThread = JsonSerializer.Deserialize<JsonElement>(await File.ReadAllTextAsync(tempFilePath));
+
+// Deserialize the thread state after loading from storage.
+AgentThread resumedThread = agent.DeserializeThread(reloadedSerializedThread);
+
+// Run the agent again with the resumed thread.
+Console.WriteLine(await agent.RunAsync("No, I do not have it this time. I think afternoon would work better.", resumedThread));
+
+#!markdown
+
+#### Understand images alongside text
+
+We send an image (as bytes) together with text and let the model reason over both. Great for signage, receipts, or simple visual checks.
+
+Faster field decisions and fewer errors. Multimodal messages with `DataContent` (image) and `TextContent`.
+
+#!csharp
+
+AIAgent agent = chatClient.CreateAIAgent(
+    "You are an agent that can analyse parking signs and advise if it is suitable for regular citizens to park or not. You need to provide a reason of your outcome.",
+    "ParkingAgent");
+
+var imagePath = Path.GetFullPath(@"resources\parking-sign.jpg");
+byte[] imageBytes = await File.ReadAllBytesAsync(imagePath);
+string base64 = Convert.ToBase64String(imageBytes);
+var dataUri = $"data:image/jpeg;base64,{base64}";
+
+// Create the message with the base64 image
+ChatMessage message = new(ChatRole.User, [
+    new TextContent($"Right now, it is {DateTime.Now} in Sydney. Can you please analyse this parking sign and let me know if I can park here?"),
+    new DataContent(imageBytes, "image/jpeg")
+]);
+
+var thread = agent.GetNewThread();
+Console.WriteLine(await agent.RunAsync(message, thread));
+
+#!markdown
+
+#### Compose agents into tools
+
+We expose one agent (VisaAgent) as a callable function inside another (TravelPlanner). This ensures prerequisite checks happen before planning—without duplicating logic.
+
+You can reuse expertise and reduce rework. `visaAgent.AsAIFunction()` to plug an agent into another agent’s toolset.
+
+#!csharp
+
+using Microsoft.Agents.AI;
+using System.ComponentModel;
+
+// Use Case: VisaAgent as a function tool inside a TravelPlanner agent
+// 1) A function tool that answers simple visa eligibility rules (demo stub).
+[Description("Check visa requirements for a nationality traveling to a destination.")]
+static string CheckVisa(
+    [Description("Traveler nationality (e.g., Australian).")] string nationality,
+    [Description("Destination country (e.g., Japan).")] string destination)
+{
+    nationality = nationality?.ToLowerInvariant() ?? string.Empty;
+    destination = destination?.ToLowerInvariant() ?? string.Empty;
+    if (nationality.Contains("australian") && destination.Contains("new zealand"))
+        return "Visa not required for short tourist stays.";
+    return "Visa requirement depends on stay length and purpose; check official guidance.";
+}
+
+// 2) Create the VisaAgent with the function tool.
+AIAgent visaAgent = chatClient.CreateAIAgent(
+    instructions: "You are a visa advisor. Answer succinctly with a one-line decision and a short note.",
+    name: "VisaAgent",
+    description: "Provides basic visa guidance.",
+    tools: [AIFunctionFactory.Create(CheckVisa)]);
+
+// 3) Create the TravelPlanner and provide the VisaAgent as a function tool.
+AIAgent travelPlanner = chatClient.CreateAIAgent(
+    instructions: "You are a travel planner. First call the visa tool to check requirements, then propose a 3-day itinerary with brief bullets and indicative budget. Keep it under 150 words.",
+    name: "TravelPlanner",
+    description: "Plans short trips with prerequisite checks.",
+    tools: [visaAgent.AsAIFunction()]);
+
+// 4) Invoke the TravelPlanner which will call the VisaAgent tool internally.
+Console.WriteLine(await travelPlanner.RunAsync("Plan a 3-day trip for an Australian traveler to New Zealand in October."));
+
+#!markdown
+
+#### Add personalised memory
+
+We attach a custom `AIContextProvider` to capture dietary preferences and inject constraints before each call. Memory can be serialized and reused across threads.
+
+It plans users actually follow, with fewer corrections. Implement `InvokedAsync`/`InvokingAsync`; persist via `Serialize`/`Deserialize`.
+
+#!csharp
+
+using System;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Agents.AI;
+
+internal sealed class DietaryProfile
+{
+    [JsonPropertyName("dietType")]
+    public string? DietType { get; set; }
+
+    [JsonPropertyName("allergens")]
+    public string[] Allergens { get; set; } = Array.Empty<string>();
+
+    [JsonPropertyName("dislikes")]
+    public string[] Dislikes { get; set; } = Array.Empty<string>();
+
+    [JsonPropertyName("calorieTarget")]
+    public int? CalorieTarget { get; set; }
+}
+
+internal sealed class DietaryMemory : AIContextProvider
+{
+    private readonly IChatClient _chatClient;
+
+    public DietaryProfile Profile { get; set; }
+
+    public DietaryMemory(IChatClient chatClient, DietaryProfile? profile = null)
+    {
+        _chatClient = chatClient;
+        Profile = profile ?? new DietaryProfile();
+    }
+
+    public DietaryMemory(IChatClient chatClient, JsonElement serializedState, JsonSerializerOptions? jsonSerializerOptions = null)
+    {
+        _chatClient = chatClient;
+        Profile = serializedState.ValueKind == JsonValueKind.Object
+            ? serializedState.Deserialize<DietaryProfile>(jsonSerializerOptions)!
+            : new DietaryProfile();
+    }
+
+    public override async ValueTask InvokedAsync(InvokedContext context, CancellationToken cancellationToken = default)
+    {
+        bool needsDietType = string.IsNullOrWhiteSpace(Profile.DietType);
+        bool needsAllergens = Profile.Allergens == null || Profile.Allergens.Length == 0;
+        bool needsDislikes = Profile.Dislikes == null || Profile.Dislikes.Length == 0;
+        bool needsCalories = Profile.CalorieTarget == null;
+
+        if ((needsDietType || needsAllergens || needsDislikes || needsCalories) && context.RequestMessages.Any(x => x.Role == ChatRole.User))
+        {
+            var result = await _chatClient.GetResponseAsync<DietaryProfile>(
+                context.RequestMessages,
+                new ChatOptions
+                {
+                    Instructions = "Extract the user's dietType (e.g., vegetarian, vegan, keto), allergens (array), dislikes (array), and calorieTarget (integer) if present. If not present, return nulls or empty arrays."
+                },
+                cancellationToken: cancellationToken);
+
+            Profile.DietType ??= result.Result.DietType;
+            Profile.Allergens = (Profile.Allergens == null || Profile.Allergens.Length == 0) && result.Result.Allergens != null 
+                ? result.Result.Allergens 
+                : Profile.Allergens;
+            Profile.Dislikes = (Profile.Dislikes == null || Profile.Dislikes.Length == 0) && result.Result.Dislikes != null 
+                ? result.Result.Dislikes 
+                : Profile.Dislikes;
+            Profile.CalorieTarget ??= result.Result.CalorieTarget;
+        }
+    }
+
+    public override ValueTask<AIContext> InvokingAsync(InvokingContext context, CancellationToken cancellationToken = default)
+    {
+        StringBuilder instructions = new StringBuilder();
+
+        if (string.IsNullOrWhiteSpace(Profile.DietType))
+        {
+            instructions.AppendLine("Ask the user for their diet type (e.g., vegetarian, vegan, keto) and wait for it before proceeding.");
+        }
+        else
+        {
+            instructions.AppendLine("Diet type: " + Profile.DietType + ".");
+        }
+
+        if (Profile.Allergens == null || Profile.Allergens.Length == 0)
+        {
+            instructions.AppendLine("Ask the user for any allergens (e.g., peanuts, shellfish) and wait for it if unknown.");
+        }
+        else
+        {
+            instructions.AppendLine("Never include allergens: " + string.Join(", ", Profile.Allergens) + ".");
+        }
+
+        if (Profile.Dislikes == null || Profile.Dislikes.Length == 0)
+        {
+            instructions.AppendLine("Ask the user for any disliked ingredients.");
+        }
+        else
+        {
+            instructions.AppendLine("Avoid disliked ingredients: " + string.Join(", ", Profile.Dislikes) + ".");
+        }
+
+        if (Profile.CalorieTarget == null)
+        {
+            instructions.AppendLine("Ask the user for a daily calorie target.");
+        }
+        else
+        {
+            instructions.AppendLine("Keep daily calories near: " + Profile.CalorieTarget + ".");
+        }
+
+        instructions.AppendLine("When planning meals, provide a 3-day dinner plan with brief bullets and a minimal grocery list.");
+
+        return new ValueTask<AIContext>(new AIContext
+        {
+            Instructions = instructions.ToString()
+        });
+    }
+
+    public override JsonElement Serialize(JsonSerializerOptions? jsonSerializerOptions = null)
+    {
+        return JsonSerializer.SerializeToElement(Profile, jsonSerializerOptions);
+    }
+}
+
+// Create MealPlanner agent with memory factory.
+AIAgent mealPlanner = chatClient.CreateAIAgent(new ChatClientAgentOptions
+{
+    Instructions = "You are a helpful meal planner. Ask for missing dietary details first, then produce a 3-day dinner plan with a short grocery list.",
+    AIContextProviderFactory = ctx => new DietaryMemory(chatClient.AsIChatClient(), ctx.SerializedState, ctx.JsonSerializerOptions)
+});
+
+// Start a new thread (blank memory)
+AgentThread mealThread = mealPlanner.GetNewThread();
+Console.WriteLine(">> Meal Planner: Start conversation with blank memory\n");
+Console.WriteLine(await mealPlanner.RunAsync("Hi, can you suggest dinners for the next 3 days?", mealThread));
+Console.WriteLine(await mealPlanner.RunAsync("I am vegetarian and allergic to peanuts.", mealThread));
+Console.WriteLine(await mealPlanner.RunAsync("I dislike mushrooms.", mealThread));
+Console.WriteLine(await mealPlanner.RunAsync("Target about 1800 calories per day.", mealThread));
+
+// Serialize memory and thread state
+JsonElement savedMealThread = mealThread.Serialize();
+
+Console.WriteLine("\n>> Resume with saved dietary profile\n");
+AgentThread resumedMealThread = mealPlanner.DeserializeThread(savedMealThread);
+Console.WriteLine(await mealPlanner.RunAsync("Now generate the 3-day dinner plan.", resumedMealThread));
+
+// Read back memory
+var resumedMemory = resumedMealThread.GetService<DietaryMemory>();
+Console.WriteLine($"\nMEMORY - Diet: {resumedMemory?.Profile.DietType}");
+Console.WriteLine($"MEMORY - Allergens: {string.Join(", ", resumedMemory?.Profile.Allergens ?? Array.Empty<string>())}");
+Console.WriteLine($"MEMORY - Dislikes: {string.Join(", ", resumedMemory?.Profile.Dislikes ?? Array.Empty<string>())}");
+Console.WriteLine($"MEMORY - CalorieTarget: {resumedMemory?.Profile.CalorieTarget}");
+
+Console.WriteLine("\n>> New thread sharing existing dietary memory\n");
+AgentThread newMealThread = mealPlanner.GetNewThread();
+if (resumedMemory?.Profile is not null && newMealThread.GetService<DietaryMemory>() is DietaryMemory newThreadMemory)
+{
+    newThreadMemory.Profile = resumedMemory.Profile;
+}
+Console.WriteLine(await mealPlanner.RunAsync("Please regenerate with a Mediterranean style.", newMealThread));
+
+#!markdown
+
+### Multi-User Personalization
+
+This section shows how to handle two different users in parallel by giving each their own `AgentThread` and `DietaryMemory`. The same `mealPlanner` agent generates plans tailored to each user's stored profile.
+
+#!markdown
+
+Run separate threads and memories per user so profiles and history don’t leak. Resume each user later by deserializing their saved thread.
+
+It is trustworthy personalization at scale. One `AgentThread` + `AIContextProvider` per user for isolation.
+
+#!csharp
+
+// Two distinct users: Alice and Bob
+var aliceProfile = new DietaryProfile
+{
+    DietType = "vegetarian",
+    Allergens = new[] { "peanuts" },
+    Dislikes = new[] { "mushrooms" },
+    CalorieTarget = 1800
+};
+
+var bobProfile = new DietaryProfile
+{
+    DietType = "keto",
+    Allergens = Array.Empty<string>(),
+    Dislikes = new[] { "broccoli" },
+    CalorieTarget = 2200
+};
+
+// Alice: personalized thread + memory
+AgentThread aliceThread = mealPlanner.GetNewThread();
+if (aliceThread.GetService<DietaryMemory>() is DietaryMemory aliceMemory)
+{
+    aliceMemory.Profile = aliceProfile;
+}
+
+// Bob: personalized thread + memory
+AgentThread bobThread = mealPlanner.GetNewThread();
+if (bobThread.GetService<DietaryMemory>() is DietaryMemory bobMemory)
+{
+    bobMemory.Profile = bobProfile;
+}
+
+Console.WriteLine(">> Alice (vegetarian, peanut allergy, dislikes mushrooms)\n");
+Console.WriteLine(await mealPlanner.RunAsync("Generate a 3-day dinner plan with a short grocery list.", aliceThread));
+
+Console.WriteLine("\n>> Bob (keto, dislikes broccoli)\n");
+Console.WriteLine(await mealPlanner.RunAsync("Generate a 3-day dinner plan with a short grocery list.", bobThread));
+
+// Optional: serialize and resume each user's thread to continue later
+JsonElement aliceSaved = aliceThread.Serialize();
+JsonElement bobSaved = bobThread.Serialize();
+
+AgentThread aliceResumed = mealPlanner.DeserializeThread(aliceSaved);
+AgentThread bobResumed = mealPlanner.DeserializeThread(bobSaved);
+
+Console.WriteLine("\n>> Alice follow-up (Mediterranean style)\n");
+Console.WriteLine(await mealPlanner.RunAsync("Adjust plan for Mediterranean style.", aliceResumed));
+
+Console.WriteLine("\n>> Bob follow-up (lower carbs even more)\n");
+Console.WriteLine(await mealPlanner.RunAsync("Reduce carbs further while keeping variety.", bobResumed));
+
+// Peek stored memory for each user
+var aliceResumedMemory = aliceResumed.GetService<DietaryMemory>();
+var bobResumedMemory = bobResumed.GetService<DietaryMemory>();
+Console.WriteLine($"\nAlice Memory -> Diet: {aliceResumedMemory?.Profile.DietType}, Allergens: {string.Join(", ", aliceResumedMemory?.Profile.Allergens ?? Array.Empty<string>())}, Dislikes: {string.Join(", ", aliceResumedMemory?.Profile.Dislikes ?? Array.Empty<string>())}, Calories: {aliceResumedMemory?.Profile.CalorieTarget}");
+Console.WriteLine($"Bob Memory   -> Diet: {bobResumedMemory?.Profile.DietType}, Allergens: {string.Join(", ", bobResumedMemory?.Profile.Allergens ?? Array.Empty<string>())}, Dislikes: {string.Join(", ", bobResumedMemory?.Profile.Dislikes ?? Array.Empty<string>())}, Calories: {bobResumedMemory?.Profile.CalorieTarget}");
