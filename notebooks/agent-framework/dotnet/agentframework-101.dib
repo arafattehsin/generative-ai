@@ -58,8 +58,8 @@ Tip: If packages fail to restore, ensure you're on the latest .NET SDK and have 
 
 #!csharp
 
-#r "nuget: Microsoft.Agents.AI, 1.0.0-preview.251001.3"
-#r "nuget: Microsoft.Agents.AI.OpenAI, 1.0.0-preview.251001.3"
+#r "nuget: Microsoft.Agents.AI, 1.0.0-preview.251009.1"
+#r "nuget: Microsoft.Agents.AI.OpenAI, 1.0.0-preview.251009.1"
 #r "nuget: Azure.Identity, *-*"
 #r "nuget: Azure.AI.OpenAI, *-*"
 #r "nuget: OpenAI, *-*"
@@ -741,3 +741,518 @@ var aliceResumedMemory = aliceResumed.GetService<DietaryMemory>();
 var bobResumedMemory = bobResumed.GetService<DietaryMemory>();
 Console.WriteLine($"\nAlice Memory -> Diet: {aliceResumedMemory?.Profile.DietType}, Allergens: {string.Join(", ", aliceResumedMemory?.Profile.Allergens ?? Array.Empty<string>())}, Dislikes: {string.Join(", ", aliceResumedMemory?.Profile.Dislikes ?? Array.Empty<string>())}, Calories: {aliceResumedMemory?.Profile.CalorieTarget}");
 Console.WriteLine($"Bob Memory   -> Diet: {bobResumedMemory?.Profile.DietType}, Allergens: {string.Join(", ", bobResumedMemory?.Profile.Allergens ?? Array.Empty<string>())}, Dislikes: {string.Join(", ", bobResumedMemory?.Profile.Dislikes ?? Array.Empty<string>())}, Calories: {bobResumedMemory?.Profile.CalorieTarget}");
+
+#!markdown
+
+### Middleware: Add layers for safety and observability
+
+Middleware lets you intercept and transform agent behavior at multiple levels: chat client calls, agent runs, and function invocations. This is essential for production scenarios requiring PII filtering, content guardrails, logging, or human-in-the-loop approvals.
+
+Common use cases include security (redacting sensitive data), compliance (enforcing content policies), and observability (logging and monitoring).
+
+#!csharp
+
+using System.Text.RegularExpressions;
+
+// Helper functions for the middleware example
+[Description("Get the weather for a given location.")]
+static string GetWeather([Description("The location to get the weather for.")] string location)
+    => $"The weather in {location} is cloudy with a high of 15°C.";
+
+[Description("The current datetime offset.")]
+static string GetDateTime()
+    => DateTimeOffset.Now.ToString();
+
+// PII Filtering Middleware - Redacts phone numbers, emails, and names
+async Task<AgentRunResponse> PIIMiddleware(IEnumerable<ChatMessage> messages, AgentThread? thread, AgentRunOptions? options, AIAgent innerAgent, CancellationToken cancellationToken)
+{
+    // Redact PII information from input messages
+    var filteredMessages = FilterMessages(messages);
+    Console.WriteLine(">> PII Middleware: Filtered input messages");
+
+    var response = await innerAgent.RunAsync(filteredMessages, thread, options, cancellationToken).ConfigureAwait(false);
+
+    // Redact PII information from output messages
+    response.Messages = FilterMessages(response.Messages);
+    Console.WriteLine(">> PII Middleware: Filtered output messages");
+
+    return response;
+
+    static IList<ChatMessage> FilterMessages(IEnumerable<ChatMessage> messages)
+    {
+        return messages.Select(m => new ChatMessage(m.Role, FilterPii(m.Text))).ToList();
+    }
+
+    static string FilterPii(string content)
+    {
+        // Regex patterns for PII detection (simplified for demonstration)
+        Regex[] piiPatterns = [
+            new(@"\b\d{3}-\d{3}-\d{4}\b", RegexOptions.Compiled), // Phone number (e.g., 123-456-7890)
+            new(@"\b[\w\.-]+@[\w\.-]+\.\w+\b", RegexOptions.Compiled), // Email address
+            new(@"\b[A-Z][a-z]+\s[A-Z][a-z]+\b", RegexOptions.Compiled) // Full name (e.g., John Doe)
+        ];
+
+        foreach (var pattern in piiPatterns)
+        {
+            content = pattern.Replace(content, "[REDACTED-PII]");
+        }
+
+        return content;
+    }
+}
+
+// Guardrail Middleware - Blocks harmful content keywords
+async Task<AgentRunResponse> GuardrailMiddleware(IEnumerable<ChatMessage> messages, AgentThread? thread, AgentRunOptions? options, AIAgent innerAgent, CancellationToken cancellationToken)
+{
+    // Redact keywords from input messages
+    var filteredMessages = FilterMessages(messages);
+    Console.WriteLine(">> Guardrail Middleware: Checked input messages");
+
+    var response = await innerAgent.RunAsync(filteredMessages, thread, options, cancellationToken);
+
+    // Redact keywords from output messages
+    response.Messages = FilterMessages(response.Messages);
+    Console.WriteLine(">> Guardrail Middleware: Checked output messages");
+
+    return response;
+
+    List<ChatMessage> FilterMessages(IEnumerable<ChatMessage> messages)
+    {
+        return messages.Select(m => new ChatMessage(m.Role, FilterContent(m.Text))).ToList();
+    }
+
+    static string FilterContent(string content)
+    {
+        foreach (var keyword in new[] { "harmful", "illegal", "violence" })
+        {
+            if (content.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                return "[REDACTED: Forbidden content detected]";
+            }
+        }
+        return content;
+    }
+}
+
+// Function Call Logging Middleware
+async ValueTask<object?> FunctionCallLoggingMiddleware(AIAgent agent, FunctionInvocationContext context, Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> next, CancellationToken cancellationToken)
+{
+    Console.WriteLine($">> Function Middleware: Calling {context.Function.Name}");
+    var result = await next(context, cancellationToken);
+    Console.WriteLine($">> Function Middleware: {context.Function.Name} completed");
+    return result;
+}
+
+// Function Result Override Middleware - Overrides weather results
+async ValueTask<object?> FunctionOverrideWeatherMiddleware(AIAgent agent, FunctionInvocationContext context, Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> next, CancellationToken cancellationToken)
+{
+    var result = await next(context, cancellationToken);
+    
+    if (context.Function.Name == nameof(GetWeather))
+    {
+        Console.WriteLine($">> Override Middleware: Changing weather result");
+        result = "The weather is sunny with a high of 25°C.";
+    }
+    return result;
+}
+
+// Build agent with multiple middleware layers
+var middlewareAgent = chatClient.CreateAIAgent(
+    instructions: "You are a helpful assistant that provides information.",
+    name: "MiddlewareAgent",
+    tools: [AIFunctionFactory.Create(GetDateTime), AIFunctionFactory.Create(GetWeather)])
+    .AsBuilder()
+    .Use(FunctionCallLoggingMiddleware)
+    .Use(FunctionOverrideWeatherMiddleware)
+    .Use(PIIMiddleware, null)
+    .Use(GuardrailMiddleware, null)
+    .Build();
+
+Console.WriteLine("\n=== Example 1: Guardrail blocks harmful content ===");
+var guardResponse = await middlewareAgent.RunAsync("Tell me something harmful.");
+Console.WriteLine($"Response: {guardResponse}\n");
+
+Console.WriteLine("\n=== Example 2: PII filtering in action ===");
+var piiResponse = await middlewareAgent.RunAsync("My name is John Doe, call me at 123-456-7890 or email john@example.com");
+Console.WriteLine($"Response: {piiResponse}\n");
+
+Console.WriteLine("\n=== Example 3: Function middleware with override ===");
+var functionResponse = await middlewareAgent.RunAsync("What's the time and the weather in Seattle?");
+Console.WriteLine($"Response: {functionResponse}");
+
+#!markdown
+
+## Customer Support Agent with Plugins
+
+Real-world customer support scenario using dependency injection. This example demonstrates:
+
+- **CRM integration**: Looking up customer information and order history
+- **Inventory system**: Checking product availability and stock levels
+- **Plugin architecture**: Using `ServiceCollection` for dependency injection
+- **Business logic separation**: Service classes with constructor and parameter injection
+- **Explicit function exposure**: Controlling which methods are available as AI tools
+
+#!csharp
+
+using Microsoft.Extensions.DependencyInjection;
+
+// Simulate a CRM system with customer data
+public class CustomerService
+{
+    private readonly Dictionary<string, CustomerRecord> _customers = new()
+    {
+        ["CUST-001"] = new CustomerRecord 
+        { 
+            CustomerId = "CUST-001", 
+            Name = "Alice Johnson", 
+            Email = "alice.johnson@example.com",
+            MembershipTier = "Gold",
+            AccountBalance = 1250.00m
+        },
+        ["CUST-002"] = new CustomerRecord 
+        { 
+            CustomerId = "CUST-002", 
+            Name = "Bob Smith", 
+            Email = "bob.smith@example.com",
+            MembershipTier = "Silver",
+            AccountBalance = -45.00m
+        }
+    };
+
+    public CustomerRecord? GetCustomer(string customerId)
+    {
+        _customers.TryGetValue(customerId, out var customer);
+        return customer;
+    }
+
+    public string GetCustomerSummary(string customerId)
+    {
+        var customer = GetCustomer(customerId);
+        if (customer == null)
+            return $"Customer {customerId} not found.";
+
+        return $"Customer: {customer.Name}\n" +
+               $"Email: {customer.Email}\n" +
+               $"Membership: {customer.MembershipTier}\n" +
+               $"Account Balance: ${customer.AccountBalance:F2}";
+    }
+}
+
+public record CustomerRecord
+{
+    public string CustomerId { get; init; } = "";
+    public string Name { get; init; } = "";
+    public string Email { get; init; } = "";
+    public string MembershipTier { get; init; } = "";
+    public decimal AccountBalance { get; init; }
+}
+
+// Simulate an order management system
+public class OrderService
+{
+    private readonly Dictionary<string, List<OrderRecord>> _ordersByCustomer = new()
+    {
+        ["CUST-001"] = new List<OrderRecord>
+        {
+            new() { OrderId = "ORD-1001", ProductName = "Laptop Pro 15", Quantity = 1, Price = 1299.99m, Status = "Delivered", OrderDate = DateTime.Now.AddDays(-10) },
+            new() { OrderId = "ORD-1005", ProductName = "Wireless Mouse", Quantity = 2, Price = 29.99m, Status = "Shipped", OrderDate = DateTime.Now.AddDays(-2) }
+        },
+        ["CUST-002"] = new List<OrderRecord>
+        {
+            new() { OrderId = "ORD-1003", ProductName = "USB-C Cable", Quantity = 3, Price = 15.99m, Status = "Processing", OrderDate = DateTime.Now.AddDays(-1) }
+        }
+    };
+
+    public string GetRecentOrders(string customerId, int count = 5)
+    {
+        if (!_ordersByCustomer.TryGetValue(customerId, out var orders))
+            return $"No orders found for customer {customerId}.";
+
+        var recentOrders = orders.OrderByDescending(o => o.OrderDate).Take(count);
+        var summary = $"Recent orders for {customerId}:\n\n";
+        
+        foreach (var order in recentOrders)
+        {
+            summary += $"Order #{order.OrderId} - {order.ProductName}\n" +
+                      $"  Quantity: {order.Quantity}, Price: ${order.Price:F2}\n" +
+                      $"  Status: {order.Status}, Date: {order.OrderDate:MM/dd/yyyy}\n\n";
+        }
+        
+        return summary;
+    }
+}
+
+public record OrderRecord
+{
+    public string OrderId { get; init; } = "";
+    public string ProductName { get; init; } = "";
+    public int Quantity { get; init; }
+    public decimal Price { get; init; }
+    public string Status { get; init; } = "";
+    public DateTime OrderDate { get; init; }
+}
+
+// Simulate an inventory system
+public class InventoryService
+{
+    private readonly Dictionary<string, InventoryItem> _inventory = new()
+    {
+        ["LAPTOP-PRO"] = new InventoryItem { Sku = "LAPTOP-PRO", Name = "Laptop Pro 15", InStock = 45, ReorderPoint = 10 },
+        ["MOUSE-WL"] = new InventoryItem { Sku = "MOUSE-WL", Name = "Wireless Mouse", InStock = 3, ReorderPoint = 20 },
+        ["CABLE-USBC"] = new InventoryItem { Sku = "CABLE-USBC", Name = "USB-C Cable", InStock = 150, ReorderPoint = 50 }
+    };
+
+    public string CheckStock(string productSku)
+    {
+        if (!_inventory.TryGetValue(productSku, out var item))
+            return $"Product {productSku} not found in inventory.";
+
+        var status = item.InStock > item.ReorderPoint ? "In Stock" : 
+                     item.InStock > 0 ? "Low Stock - Reorder Needed" : 
+                     "Out of Stock";
+
+        return $"Product: {item.Name} (SKU: {item.Sku})\n" +
+               $"Available: {item.InStock} units\n" +
+               $"Status: {status}";
+    }
+}
+
+public record InventoryItem
+{
+    public string Sku { get; init; } = "";
+    public string Name { get; init; } = "";
+    public int InStock { get; init; }
+    public int ReorderPoint { get; init; }
+}
+
+// Customer support plugin that integrates all services
+public class CustomerSupportPlugin
+{
+    private readonly CustomerService _customerService;
+    
+    // Constructor injection
+    public CustomerSupportPlugin(CustomerService customerService)
+    {
+        _customerService = customerService;
+    }
+    
+    // Uses constructor-injected dependency
+    public string GetCustomerInfo(string customerId)
+    {
+        return _customerService.GetCustomerSummary(customerId);
+    }
+    
+    // Uses IServiceProvider parameter injection for on-demand service resolution
+    public string GetOrderHistory(IServiceProvider sp, string customerId)
+    {
+        var orderService = sp.GetRequiredService<OrderService>();
+        return orderService.GetRecentOrders(customerId);
+    }
+    
+    // Uses IServiceProvider parameter injection
+    public string CheckInventory(IServiceProvider sp, string productSku)
+    {
+        var inventoryService = sp.GetRequiredService<InventoryService>();
+        return inventoryService.CheckStock(productSku);
+    }
+    
+    // Explicitly expose methods as AI tools (returns AITool not AIFunction)
+    public IEnumerable<AITool> AsAITools()
+    {
+        yield return AIFunctionFactory.Create(
+            (string customerId) => GetCustomerInfo(customerId),
+            name: "GetCustomerInfo",
+            description: "Retrieves customer profile information including name, email, membership tier, and account balance");
+            
+        yield return AIFunctionFactory.Create(
+            (IServiceProvider sp, string customerId) => GetOrderHistory(sp, customerId),
+            name: "GetOrderHistory",
+            description: "Retrieves recent order history for a customer including order status and details");
+            
+        yield return AIFunctionFactory.Create(
+            (IServiceProvider sp, string productSku) => CheckInventory(sp, productSku),
+            name: "CheckInventory",
+            description: "Checks current inventory levels and stock status for a product SKU");
+    }
+}
+
+// Setup dependency injection container
+var supportServices = new ServiceCollection();
+supportServices.AddSingleton<CustomerService>();
+supportServices.AddSingleton<OrderService>();
+supportServices.AddSingleton<InventoryService>();
+supportServices.AddSingleton<CustomerSupportPlugin>();
+var supportServiceProvider = supportServices.BuildServiceProvider();
+
+// Get the plugin and its tools
+var supportPlugin = supportServiceProvider.GetRequiredService<CustomerSupportPlugin>();
+var supportTools = supportPlugin.AsAITools().ToArray();
+
+// Create customer support agent with plugin tools
+var supportAgent = chatClient.AsIChatClient().CreateAIAgent(
+    instructions: "You are a helpful customer support agent. Use the available tools to look up customer information, order history, and inventory status. Be professional, empathetic, and provide accurate information.",
+    name: "SupportAgent",
+    tools: supportTools,  // Pass tools array here
+    services: supportServiceProvider  // Pass service provider (lowercase 'services')
+);
+
+var supportThread = supportAgent.GetNewThread();
+
+// Test the customer support agent with realistic scenarios
+Console.WriteLine("=== Scenario 1: Customer Inquiry ===\n");
+var inquiry1 = await supportAgent.RunAsync(
+    "Hi, I'm customer CUST-001. Can you tell me about my recent orders and account status?", 
+    supportThread);
+Console.WriteLine(inquiry1);
+
+Console.WriteLine("\n\n=== Scenario 2: Stock Check ===\n");
+var inquiry2 = await supportAgent.RunAsync(
+    "I want to order a wireless mouse (SKU: MOUSE-WL). Is it in stock?", 
+    supportThread);
+Console.WriteLine(inquiry2);
+
+#!markdown
+
+# Document Review Agent with Chat History Reduction
+
+Real-world document analysis scenario with context window management. This example demonstrates:
+
+- **Long document processing**: Handling multiple document sections
+- **Chat history limits**: Keeping conversations within model context limits
+- **Context pruning**: Automatically removing old context when limit is exceeded
+- **Memory vs. context tradeoff**: Understanding what information is preserved vs. lost
+- **Business impact**: How context limits affect agent's ability to reference earlier content
+
+#!csharp
+
+using System.Threading;
+
+#pragma warning disable 
+// Custom chat reducer that keeps only the last N non-system messages
+public class MessageCountingChatReducer : IChatReducer
+{
+    private readonly int _maxMessages;
+
+    public MessageCountingChatReducer(int maxMessages)
+    {
+        _maxMessages = maxMessages;
+    }
+
+    public Task<IEnumerable<ChatMessage>> ReduceAsync(
+        IEnumerable<ChatMessage> messages, 
+        CancellationToken cancellationToken = default)
+    {
+        var messageList = messages.ToList();
+        
+        // Separate system messages from other messages
+        var systemMessages = messageList.Where(m => m.Role == ChatRole.System).ToList();
+        var nonSystemMessages = messageList.Where(m => m.Role != ChatRole.System).ToList();
+        
+        // Keep only the last N non-system messages
+        var reducedNonSystemMessages = nonSystemMessages.TakeLast(_maxMessages).ToList();
+        
+        // Combine system messages with reduced non-system messages
+        var result = systemMessages.Concat(reducedNonSystemMessages);
+        
+        return Task.FromResult(result);
+    }
+}
+
+// Simulate document sections for a contract review
+string contractSection1 = @"
+SECTION 1 - PAYMENT TERMS:
+- Total contract value: $500,000
+- Payment schedule: Quarterly installments
+- Due dates: March 31, June 30, September 30, December 31
+- Late payment penalty: 1.5% per month
+";
+
+string contractSection2 = @"
+SECTION 2 - DELIVERABLES:
+- Phase 1: Requirements Analysis (30 days)
+- Phase 2: System Design (45 days)
+- Phase 3: Implementation (90 days)
+- Phase 4: Testing and Deployment (30 days)
+- Total project duration: 195 days
+";
+
+string contractSection3 = @"
+SECTION 3 - WARRANTY AND SUPPORT:
+- Warranty period: 12 months from deployment
+- Support hours: 24/7 for critical issues
+- Response time: 2 hours for critical, 8 hours for standard
+- Support team size: Minimum 3 dedicated engineers
+";
+
+string contractSection4 = @"
+SECTION 4 - TERMINATION CLAUSES:
+- Either party may terminate with 60 days written notice
+- Termination fees: 25% of remaining contract value
+- Intellectual property rights revert to client upon termination
+- All work products delivered within 15 days of termination
+";
+
+// Create a document review agent with limited chat history (keeps only last 4 messages)
+var documentReviewAgent = chatClient.AsIChatClient().CreateAIAgent(new ChatClientAgentOptions
+{
+    Instructions = @"You are a legal document review assistant. Analyze contract sections, identify key terms, 
+                     risks, and provide recommendations. Be thorough and reference specific clause details.",
+    Name = "DocumentReviewer",
+    // Limit to last 4 non-system messages to simulate context window constraints
+    ChatMessageStoreFactory = ctx => new InMemoryChatMessageStore(
+        new MessageCountingChatReducer(4), 
+        ctx.SerializedState, 
+        ctx.JsonSerializerOptions)
+});
+
+var reviewThread = documentReviewAgent.GetNewThread();
+var reviewChatHistory = reviewThread.GetService<IList<ChatMessage>>();
+
+// Review multiple sections - watching context window fill up
+Console.WriteLine("=== Reviewing Section 1: Payment Terms ===");
+var review1 = await documentReviewAgent.RunAsync(
+    $"Please review this contract section and identify key payment terms:\n{contractSection1}", 
+    reviewThread);
+Console.WriteLine(review1);
+Console.WriteLine($"\n📊 Chat history: {reviewChatHistory?.Count} messages\n");
+
+Console.WriteLine("\n=== Reviewing Section 2: Deliverables ===");
+var review2 = await documentReviewAgent.RunAsync(
+    $"Now review this deliverables section:\n{contractSection2}", 
+    reviewThread);
+Console.WriteLine(review2);
+Console.WriteLine($"\n📊 Chat history: {reviewChatHistory?.Count} messages\n");
+
+Console.WriteLine("\n=== Reviewing Section 3: Warranty ===");
+var review3 = await documentReviewAgent.RunAsync(
+    $"Review the warranty and support terms:\n{contractSection3}", 
+    reviewThread);
+Console.WriteLine(review3);
+Console.WriteLine($"\n📊 Chat history: {reviewChatHistory?.Count} messages\n");
+
+Console.WriteLine("\n=== Reviewing Section 4: Termination ===");
+var review4 = await documentReviewAgent.RunAsync(
+    $"Review the termination clauses:\n{contractSection4}", 
+    reviewThread);
+Console.WriteLine(review4);
+Console.WriteLine($"\n📊 Chat history: {reviewChatHistory?.Count} messages\n");
+
+// At this point, the context window is full. Section 1 (Payment Terms) has been removed from history.
+// The agent can no longer reference the payment terms we reviewed first.
+
+Console.WriteLine("\n=== ⚠️ CONTEXT LIMIT EXCEEDED - Testing Lost Context ===");
+var followUp = await documentReviewAgent.RunAsync(
+    @"Based on your review, what's the total contract value and how does it relate to the termination fees? 
+      Please provide the calculation.", 
+    reviewThread);
+Console.WriteLine(followUp);
+Console.WriteLine($"\n📊 Final chat history: {reviewChatHistory?.Count} messages");
+
+Console.WriteLine("\n⚠️ IMPORTANT BUSINESS IMPACT:");
+Console.WriteLine("The agent cannot accurately answer because Section 1 (Payment Terms) was removed from context.");
+Console.WriteLine("This demonstrates why chat history reduction must be carefully considered in production systems.");
+Console.WriteLine("\nSOLUTIONS for production:");
+Console.WriteLine("• Increase context window size based on business needs");
+Console.WriteLine("• Implement summarization instead of simple truncation");
+Console.WriteLine("• Store critical information in persistent memory/database");
+Console.WriteLine("• Use RAG (Retrieval Augmented Generation) for document analysis");

@@ -60,3 +60,15 @@
 /samples/dotnet/A2A-CustomerService/backend/obj/Debug/net9.0
 /samples/dotnet/A2A-CustomerService/backend/obj/Release/net9.0
 /samples/dotnet/MultiAgentOrchestration/src/AppHost/obj/Debug/net9.0
+/samples/dotnet/spend-dashboard/backend/.vs/SpendDashboard.Api
+/samples/dotnet/spend-dashboard/backend/bin/Debug/net9.0
+/samples/dotnet/spend-dashboard/backend/bin/Debug/net9.0/runtimes/win/lib/netstandard2.0/System.Security.Cryptography.ProtectedData.dll
+/samples/dotnet/spend-dashboard/backend/obj
+
+# Frontend - spend-dashboard
+/samples/dotnet/spend-dashboard/frontend/node_modules
+/samples/dotnet/spend-dashboard/frontend/dist
+/samples/dotnet/spend-dashboard/frontend/.env.local
+/samples/dotnet/spend-dashboard/frontend/.env.*.local
+/samples/dotnet/spend-dashboard/frontend/.vscode
+/samples/dotnet/spend-dashboard/frontend/.vs
