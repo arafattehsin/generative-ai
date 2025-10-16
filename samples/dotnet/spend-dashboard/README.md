@@ -1,4 +1,4 @@
-# Spend Control Dashboard (Agent Framework + Azure OpenAI)
+# Spend Control Dashboard (Agent Framework + Azure AI Foundry)
 
 This sample demonstrates a non‑chat UI that drives an Agent Framework (.NET) backend with function tools and human‑in‑the‑loop approvals. The scenario is finance spend control: getting invoice status and releasing payments with an approval threshold.
 
