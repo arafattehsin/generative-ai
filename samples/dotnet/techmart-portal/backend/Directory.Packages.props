@@ -1,0 +1,59 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <!-- Aspire SDK Version -->
+        <AspireAppHostSdkVersion>13.0.0</AspireAppHostSdkVersion>
+        <!-- Agent Framework Version -->
+        <AgentFrameworkVersion>1.0.0-preview.251125.1</AgentFrameworkVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Microsoft Agent Framework NuGet Packages -->
+        <PackageVersion Include="Microsoft.Agents.AI" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.251125.1" />
+        <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="$(AgentFrameworkVersion)" />
+        <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="$(AgentFrameworkVersion)" />
+
+        <!-- Aspire -->
+        <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(AspireAppHostSdkVersion)" />
+        <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0" />
+
+        <!-- OpenTelemetry -->
+        <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
+        <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.13.1" />
+        <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.13.0" />
+        <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.13.0" />
+        <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.13.0" />
+
+        <!-- Azure -->
+        <PackageVersion Include="Azure.AI.OpenAI" Version="2.7.0-beta.1" />
+        <PackageVersion Include="Azure.Identity" Version="1.17.0" />
+
+        <!-- Microsoft.Extensions.AI -->
+        <PackageVersion Include="Microsoft.Extensions.AI" Version="10.0.1" />
+        <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.0.1-preview.1.25571.5" />
+
+        <!-- A2A Protocol -->
+        <PackageVersion Include="A2A" Version="0.3.3-preview" />
+        <PackageVersion Include="A2A.AspNetCore" Version="0.3.3-preview" />
+
+        <!-- MCP (Model Context Protocol) -->
+        <PackageVersion Include="ModelContextProtocol" Version="0.4.0-preview.3" />
+
+        <!-- Web -->
+        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.0.0" />
+    </ItemGroup>
+</Project>

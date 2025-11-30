@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Sdk Name="Aspire.AppHost.Sdk" Version="$(AspireAppHostSdkVersion)" />
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsAspireHost>true</IsAspireHost>
+        <UserSecretsId>techmart-apphost</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TechMart.AgentHost\TechMart.AgentHost.csproj" />
+        <ProjectReference Include="..\TechMart.InventoryAgent\TechMart.InventoryAgent.csproj" />
+        <ProjectReference Include="..\TechMart.FinanceAgent\TechMart.FinanceAgent.csproj" />
+        <ProjectReference Include="..\TechMart.SupportAgent\TechMart.SupportAgent.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.AppHost" />
+    </ItemGroup>
+
+</Project>
