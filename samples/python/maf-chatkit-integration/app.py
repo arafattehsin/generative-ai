@@ -377,7 +377,7 @@ async def analyse_parking_sign(
     image_content_type: str,
     current_time: str | None = None,
 ) -> ParkingAnalysisData | str:
-    """Analyse a parking sign image using GPT-4o vision."""
+    """Analyse a parking sign image using GPT-5.1 vision."""
     # Use the same credentials as the rest of the app
     endpoint = os.environ.get("AOI_ENDPOINT_SWDN")
     api_key = os.environ.get("AOI_KEY_SWDN")
