@@ -1,0 +1,34 @@
+[project]
+name = "maf-chatkit-integration"
+version = "0.1.0"
+description = "TravelMate ChatKit Demo - Agent Framework + ChatKit Integration"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.10.0",
+    "azure-identity>=1.19.0",
+    "agent-framework-chatkit",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[tool.uv]
+prerelease = "if-necessary-or-explicit"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true

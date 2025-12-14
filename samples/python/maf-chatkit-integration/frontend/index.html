@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SwiftRover - AI Travel Assistant</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <!--
+      IMPORTANT: The ChatKit UI library is loaded from OpenAI's CDN and cannot be self-hosted.
+      This requires internet connectivity and is not suitable for air-gapped environments.
+      See: https://github.com/openai/chatkit-js/issues/57
+    -->
+    <script src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"></script>
+    <style>
+      :root {
+        --primary: #6366F1;
+        --primary-dark: #4F46E5;
+        --accent: #F59E0B;
+        --background: #0F172A;
+        --surface: #1E293B;
+        --text: #F8FAFC;
+        --text-muted: #94A3B8;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: var(--background);
+      }
+
+      header {
+        padding: 1rem 1.5rem;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 50%, #7C3AED 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        opacity: 0.5;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .logo-icon {
+        width: 44px;
+        height: 44px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .brand-text {
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      h1 span.swift {
+        color: #FCD34D;
+      }
+
+      h1 span.rover {
+        color: white;
+      }
+
+      header p {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 400;
+        margin: 0;
+      }
+
+      .header-badges {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      .badge {
+        padding: 0.35rem 0.75rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #4ADE80;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      #root {
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 640px) {
+        header {
+          padding: 0.75rem 1rem;
+        }
+        h1 {
+          font-size: 1.25rem;
+        }
+        .header-badges {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo-container">
+        <div class="logo-icon">🚀</div>
+        <div class="brand-text">
+          <h1><span class="swift">Swift</span><span class="rover">Rover</span></h1>
+          <p>Your AI-powered travel assistant</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <div class="badge">
+          <div class="badge-dot"></div>
+          AI Ready
+        </div>
+        <div class="badge">✈️ Flights</div>
+        <div class="badge">🅿️ Parking</div>
+        <div class="badge">💰 Expenses</div>
+      </div>
+    </header>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

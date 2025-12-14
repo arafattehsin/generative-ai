@@ -72,3 +72,24 @@
 /samples/dotnet/spend-dashboard/frontend/.env.*.local
 /samples/dotnet/spend-dashboard/frontend/.vscode
 /samples/dotnet/spend-dashboard/frontend/.vs
+
+# Python - maf-chatkit-integration
+/samples/python/maf-chatkit-integration/.venv
+/samples/python/maf-chatkit-integration/__pycache__
+/samples/python/maf-chatkit-integration/data
+/samples/python/maf-chatkit-integration/frontend/node_modules
+/samples/python/maf-chatkit-integration/frontend/dist
+
+# .NET - techmart-portal
+/samples/dotnet/techmart-portal/backend/TechMart.AgentHost/bin
+/samples/dotnet/techmart-portal/backend/TechMart.AgentHost/obj
+/samples/dotnet/techmart-portal/backend/TechMart.AppHost/bin
+/samples/dotnet/techmart-portal/backend/TechMart.AppHost/obj
+/samples/dotnet/techmart-portal/backend/TechMart.FinanceAgent/bin
+/samples/dotnet/techmart-portal/backend/TechMart.FinanceAgent/obj
+/samples/dotnet/techmart-portal/backend/TechMart.InventoryAgent/bin
+/samples/dotnet/techmart-portal/backend/TechMart.InventoryAgent/obj
+/samples/dotnet/techmart-portal/backend/TechMart.ServiceDefaults/bin
+/samples/dotnet/techmart-portal/backend/TechMart.ServiceDefaults/obj
+/samples/dotnet/techmart-portal/backend/TechMart.SupportAgent/bin
+/samples/dotnet/techmart-portal/backend/TechMart.SupportAgent/obj
