@@ -1,0 +1,8 @@
+{
+  "inputText": "Test policy document for remote work arrangements.",
+  "options": {
+    "audience": "Patients",
+    "tone": "Professional",
+    "strictCompliance": false
+  }
+}

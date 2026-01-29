@@ -93,3 +93,22 @@
 /samples/dotnet/techmart-portal/backend/TechMart.ServiceDefaults/obj
 /samples/dotnet/techmart-portal/backend/TechMart.SupportAgent/bin
 /samples/dotnet/techmart-portal/backend/TechMart.SupportAgent/obj
+
+# .NET - maf-workflow-orchestration
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Api/bin
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Api/obj
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Api/appsettings.Development.json
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Api/policypack.db
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Application/bin
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Application/obj
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Domain/bin
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Domain/obj
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Infrastructure/bin
+/samples/dotnet/maf-workflow-orchestration/backend/PolicyPackBuilder.Infrastructure/obj
+/samples/dotnet/maf-workflow-orchestration/backend/TestAzureAIProject/bin
+/samples/dotnet/maf-workflow-orchestration/backend/TestAzureAIProject/obj
+/samples/dotnet/maf-workflow-orchestration/backend/.vs
+/samples/dotnet/maf-workflow-orchestration/frontend/node_modules
+/samples/dotnet/maf-workflow-orchestration/frontend/dist
+/samples/dotnet/maf-workflow-orchestration/frontend/.env.local
+/samples/dotnet/maf-workflow-orchestration/frontend/.env.*.local

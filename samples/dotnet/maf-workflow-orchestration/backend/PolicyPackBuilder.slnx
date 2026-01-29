@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="PolicyPackBuilder.Api/PolicyPackBuilder.Api.csproj" />
+  <Project Path="PolicyPackBuilder.Application/PolicyPackBuilder.Application.csproj" />
+  <Project Path="PolicyPackBuilder.Domain/PolicyPackBuilder.Domain.csproj" />
+  <Project Path="PolicyPackBuilder.Infrastructure/PolicyPackBuilder.Infrastructure.csproj" />
+</Solution>
