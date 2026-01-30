@@ -41,7 +41,8 @@ import {
   IconRefresh,
   IconCopy,
   IconPlayerStop,
-  IconDownload
+  IconDownload,
+  IconFileText
 } from '@tabler/icons-react';
 import { api } from '../api/client';
 import { runsHub } from '../api/signalr';
@@ -98,6 +99,7 @@ export function RunDetailsPage() {
   const [activeStep, setActiveStep] = useState(0);
   const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatusInfo>>({});
   const [llmStreams, setLlmStreams] = useState<Record<string, LlmStreamData>>({});
+  const [isCreatingWordDoc, setIsCreatingWordDoc] = useState(false);
 
   const { data: run, isLoading, error } = useQuery({
     queryKey: ['run', id],
@@ -714,14 +716,79 @@ export function RunDetailsPage() {
                       </Box>
                     </Group>
                     
-                    <Button
-                      leftSection={<IconDownload size={16} />}
-                      variant="light"
-                      color="teal"
-                      size="sm"
-                    >
-                      Export HTML
-                    </Button>
+                    <Group gap="xs">
+                      <Button
+                        leftSection={<IconDownload size={16} />}
+                        variant="light"
+                        color="teal"
+                        size="sm"
+                        onClick={() => {
+                          if (!run.finalOutputHtml) return;
+                          const blob = new Blob([run.finalOutputHtml], { type: 'text/html' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `Workflow_${run.id}_Output.html`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        Export HTML
+                      </Button>
+                      <Button
+                        leftSection={<IconFileText size={16} />}
+                        variant="light"
+                        color="blue"
+                        size="sm"
+                        loading={isCreatingWordDoc}
+                        onClick={() => {
+                          if (!run.finalOutputHtml) return;
+                          setIsCreatingWordDoc(true);
+                          try {
+                            // Create a Word-compatible HTML file (MHTML format opens natively in Word)
+                            const wordHtml = `MIME-Version: 1.0
+Content-Type: multipart/related; boundary="----=_NextPart_001"
+
+------=_NextPart_001
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html xmlns:o=3D"urn:schemas-microsoft-com:office:office" xmlns:w=3D"urn:schemas-microsoft-com:office:word" xmlns=3D"http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset=3D"utf-8">
+<meta name=3D"ProgId" content=3D"Word.Document">
+<meta name=3D"Generator" content=3D"Microsoft Word 15">
+<style>
+body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
+h1 { font-size: 16pt; color: #1e3a5f; }
+h2 { font-size: 14pt; color: #2c5282; }
+h3 { font-size: 12pt; color: #2d3748; }
+</style>
+</head>
+<body>
+${run.finalOutputHtml.replace(/=/g, '=3D')}
+</body>
+</html>
+------=_NextPart_001--`;
+                            const blob = new Blob([wordHtml], { type: 'application/vnd.ms-word' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `Workflow_${run.id}_Output.docx`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } catch (error) {
+                            console.error('Failed to create Word document:', error);
+                            alert('Failed to create Word document. Please try again.');
+                          } finally {
+                            setIsCreatingWordDoc(false);
+                          }
+                        }}
+                      >
+                        Download as Word
+                      </Button>
+                    </Group>
                   </Group>
                   
                   <Box 
@@ -729,7 +796,7 @@ export function RunDetailsPage() {
                     style={{ 
                       borderRadius: 12, 
                       background: 'rgba(255, 255, 255, 0.95)',
-                      color: '#1e293b'
+                      color: '#9ca3af'
                     }}
                     dangerouslySetInnerHTML={{ __html: run.finalOutputHtml }} 
                   />
