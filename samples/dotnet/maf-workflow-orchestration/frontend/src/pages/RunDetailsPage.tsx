@@ -381,12 +381,12 @@ export function RunDetailsPage() {
                     {run.options && (
                       <>
                         <Group gap={4}>
-                          <Text size="sm" style={{ color: 'var(--color-text-muted)' }}>Audience:</Text>
-                          <Text size="sm" fw={500} style={{ color: 'var(--color-text-secondary)' }}>{run.options.audience}</Text>
+                          <Text size="sm" style={{ color: '#9ca3af' }}>Audience:</Text>
+                          <Text size="sm" fw={500} style={{ color: '#d1d5db' }}>{run.options.audience}</Text>
                         </Group>
                         <Group gap={4}>
-                          <Text size="sm" style={{ color: 'var(--color-text-muted)' }}>Tone:</Text>
-                          <Text size="sm" fw={500} style={{ color: 'var(--color-text-secondary)' }}>{run.options.tone}</Text>
+                          <Text size="sm" style={{ color: '#9ca3af' }}>Tone:</Text>
+                          <Text size="sm" fw={500} style={{ color: '#d1d5db' }}>{run.options.tone}</Text>
                         </Group>
                         {run.options.strictCompliance && (
                           <Badge size="sm" color="orange" variant="light">Strict Compliance</Badge>
@@ -395,8 +395,8 @@ export function RunDetailsPage() {
                     )}
                     {run.totalDurationMs && (
                       <Group gap={4}>
-                        <Text size="sm" style={{ color: 'var(--color-text-muted)' }}>Duration:</Text>
-                        <Text size="sm" fw={500} style={{ color: 'var(--color-accent-teal)' }}>
+                        <Text size="sm" style={{ color: '#9ca3af' }}>Duration:</Text>
+                        <Text size="sm" fw={500} style={{ color: '#5eead4' }}>
                           {(run.totalDurationMs / 1000).toFixed(2)}s
                         </Text>
                       </Group>
@@ -409,7 +409,7 @@ export function RunDetailsPage() {
             <Grid.Col span={{ base: 12, md: 4 }}>
               <Box>
                 <Group justify="space-between" mb="xs">
-                  <Text size="sm" style={{ color: 'var(--color-text-muted)' }}>Progress</Text>
+                  <Text size="sm" style={{ color: '#9ca3af' }}>Progress</Text>
                   <Text size="sm" fw={600} style={{ color: 'white' }}>{Math.round(progressPercent)}%</Text>
                 </Group>
                 <Progress 
@@ -529,7 +529,7 @@ export function RunDetailsPage() {
                               {step.durationMs ? `${(step.durationMs / 1000).toFixed(1)}s` : step.status}
                             </Text>
                           </Group>
-                          <Text size="xs" style={{ color: 'var(--color-text-muted)' }}>
+                          <Text size="xs" style={{ color: '#9ca3af' }}>
                             {config.description}
                           </Text>
                           
@@ -710,7 +710,7 @@ export function RunDetailsPage() {
                       </Box>
                       <Box>
                         <Text fw={600} style={{ color: 'white' }}>Final Deliverable</Text>
-                        <Text size="xs" style={{ color: 'var(--color-text-muted)' }}>
+                        <Text size="xs" style={{ color: '#9ca3af' }}>
                           Ready for export
                         </Text>
                       </Box>
