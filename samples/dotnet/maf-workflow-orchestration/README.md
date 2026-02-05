@@ -31,7 +31,7 @@ PolicyPack Builder demonstrates enterprise-grade AI workflow orchestration using
 
 - **.NET 9 SDK** - [Download](https://dotnet.microsoft.com/download/dotnet/9.0)
 - **Node.js 18+** - [Download](https://nodejs.org/)
-- **Microsoft Foundry Project** - With Azure OpenAI deployment (gpt-4o recommended)
+- **Azure OpenAI Service** - With a model deployment (gpt-4o-mini or gpt-4o recommended)
 
 ## 🚀 Quick Start
 
@@ -43,32 +43,14 @@ cd samples/dotnet/maf-workflow-orchestration
 
 ### 2. Configure Backend
 
-Create environment variables (or add to `appsettings.json`):
-
-**Windows (PowerShell):**
-
-```powershell
-$env:MICROSOFT_FOUNDRY_PROJECT_ENDPOINT = "https://your-foundry-endpoint.openai.azure.com/"
-$env:MICROSOFT_FOUNDRY_PROJECT_KEY = "your-api-key-here"
-$env:AZURE_OPENAI_DEPLOYMENT = "gpt-4o"  # Optional, defaults to gpt-4o
-```
-
-**Linux/Mac:**
-
-```bash
-export MICROSOFT_FOUNDRY_PROJECT_ENDPOINT="https://your-foundry-endpoint.openai.azure.com/"
-export MICROSOFT_FOUNDRY_PROJECT_KEY="your-api-key-here"
-export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
-```
-
-Alternatively, update `backend/PolicyPackBuilder.Api/appsettings.json`:
+Update `backend/PolicyPackBuilder.Api/appsettings.json` (or `appsettings.Development.json` for local development):
 
 ```json
 {
   "AzureOpenAI": {
-    "Endpoint": "https://your-foundry-endpoint.openai.azure.com/",
+    "Endpoint": "https://your-azure-openai-endpoint.openai.azure.com/",
     "ApiKey": "your-api-key-here",
-    "DeploymentName": "gpt-4o"
+    "ModelDeployment": "gpt-4o-mini"
   }
 }
 ```
@@ -170,22 +152,26 @@ frontend/
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Configuration Settings
 
-| Variable                             | Required | Default  | Description                |
-| ------------------------------------ | -------- | -------- | -------------------------- |
-| `MICROSOFT_FOUNDRY_PROJECT_ENDPOINT` | Yes      | -        | Azure OpenAI endpoint URL  |
-| `MICROSOFT_FOUNDRY_PROJECT_KEY`      | Yes      | -        | API key for authentication |
-| `AZURE_OPENAI_DEPLOYMENT`            | No       | `gpt-4o` | Deployment/model name      |
+The backend uses `appsettings.json` configuration (or `appsettings.Development.json` for local development):
+
+| Setting                       | Required | Default       | Description                |
+| ----------------------------- | -------- | ------------- | -------------------------- |
+| `AzureOpenAI:Endpoint`        | Yes      | -             | Azure OpenAI endpoint URL  |
+| `AzureOpenAI:ApiKey`          | Yes      | -             | API key for authentication |
+| `AzureOpenAI:ModelDeployment` | No       | `gpt-4o-mini` | Deployment/model name      |
 
 ### Frontend Environment Variables
 
-Create `frontend/.env`:
+Create `frontend/.env` (or copy from `.env.example`):
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 VITE_HUB_URL=http://localhost:5000/hubs/runs
 ```
+
+> **Note:** The frontend defaults to port `5266` if `.env` is not set. Ensure the backend port matches your configuration.
 
 ## 📊 Features
 
@@ -359,6 +345,16 @@ This is a demo application for blog post purposes. For production use cases, con
 - Adding retry policies and circuit breakers
 - Using MAF CheckpointManager for production workflow resumption
 - Adding comprehensive unit and integration tests
+
+---
+
+## 📝 Blog Series
+
+This sample is part of the **Agent Orchestration Patterns** blog series:
+
+🔗 **[Agent Orchestration Patterns - Part 1: Sequential Workflows](https://arafattehsin.com/blog/agent-orchestration-patterns-part-1/)**
+
+Check out the full series for more patterns including parallel, routing, and hybrid orchestration approaches.
 
 ---
 
