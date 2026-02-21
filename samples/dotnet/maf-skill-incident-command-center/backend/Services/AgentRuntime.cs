@@ -17,12 +17,15 @@ public sealed class AgentRuntime
     public AgentRuntime(IHostEnvironment environment)
     {
         string endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")
+            ?? Environment.GetEnvironmentVariable("AOI_ENDPOINT_SWDN")
             ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is not set.");
 
         string deployment = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME")
-            ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT_NAME is not set.");
+            ?? Environment.GetEnvironmentVariable("AzureOpenAI__Deployment")
+            ?? "gpt-4o";
 
-        string? apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+        string? apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY")
+            ?? Environment.GetEnvironmentVariable("AOI_KEY_SWDN");
 
         AzureOpenAIClient client = string.IsNullOrWhiteSpace(apiKey)
             ? new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
