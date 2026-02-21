@@ -1,0 +1,21 @@
+{
+  "id": "INC-SC-1002",
+  "title": "Supplier resin shortage impacting packaging",
+  "region": "EMEA",
+  "vendor": "Nordic Polymer Works",
+  "status": "active",
+  "openOrders": 28,
+  "atRiskOrders": 9,
+  "slaDeadlineUtc": "2026-02-24T16:30:00Z",
+  "summary": "Primary packaging material supplier reported a 10-day resin shortage after an unplanned plant shutdown.",
+  "signals": [
+    "Supplier lead times moved from 4 days to 13 days",
+    "Secondary supplier stock availability at 42%",
+    "Warehouse packaging buffer dropped below safety threshold"
+  ],
+  "constraints": [
+    "Labeling compliance requires approved material spec",
+    "Backorder tolerance capped at 15% for strategic accounts"
+  ],
+  "lastUpdatedUtc": "2026-02-21T05:40:00Z"
+}
