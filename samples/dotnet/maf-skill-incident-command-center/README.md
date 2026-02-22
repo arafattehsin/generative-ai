@@ -12,6 +12,7 @@ Scenario: **Supply Chain Disruption Triage** with a phased capability model:
 - Backend: ASP.NET Core (`net10.0`), Microsoft Agent Framework, Azure OpenAI
 - Frontend: React + Vite + TypeScript
 - Skills: file-based skill packages loaded via `FileAgentSkillsProvider`
+- Native skill invocation: context provider exposes `load_skill` and `read_skill_resource` tools to the agent
 
 ## Project Layout
 
@@ -65,6 +66,27 @@ POST /api/communications/draft
 GET  /api/skills
 GET  /api/runs/{runId}/events
 ```
+
+## Native Skills Integration
+
+This sample uses native Agent Framework skill invocation semantics:
+
+1. Skills are advertised to the model through an `AIContextProvider`.
+2. The provider adds native skill tools for the current run:
+   - `load_skill(skillName)`
+   - `read_skill_resource(skillName, resourcePath)`
+3. The model invokes these tools on demand, and the backend records timeline events.
+
+## Terminal Verbosity
+
+Backend logging is configured for detailed flow tracing. While running `dotnet run`, you will see:
+
+- HTTP request start/completion with latency.
+- Session and run lifecycle logs (`sessionId`, `runId`).
+- Native tool calls:
+  - `load_skill`
+  - `read_skill_resource`
+- Guard logs when required native skill invocation is missing.
 
 ## Environment Variables
 

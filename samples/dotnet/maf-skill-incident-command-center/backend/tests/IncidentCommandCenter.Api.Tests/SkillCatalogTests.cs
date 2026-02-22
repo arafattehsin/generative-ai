@@ -38,6 +38,23 @@ public sealed class SkillCatalogTests
         Assert.Contains("assets/triage-report-template.md", resources);
     }
 
+    [Fact]
+    public void ReadSkillDefinition_ReturnsSkillMarkdown()
+    {
+        var env = new TestHostEnvironment
+        {
+            ContentRootPath = ResolveBackendRoot(),
+        };
+
+        ISkillCatalogService catalog = new FileAgentSkillsProvider(env);
+
+        string resolved = catalog.ResolveSkillName("incident-triage");
+        string skillMarkdown = catalog.ReadSkillDefinition(resolved);
+
+        Assert.Equal("incident-triage", resolved);
+        Assert.Contains("Incident Triage Skill", skillMarkdown);
+    }
+
     private static string ResolveBackendRoot()
     {
         string current = AppContext.BaseDirectory;

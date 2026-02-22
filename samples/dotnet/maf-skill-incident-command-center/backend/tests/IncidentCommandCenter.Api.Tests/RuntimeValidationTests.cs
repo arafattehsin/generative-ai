@@ -1,6 +1,7 @@
 using IncidentCommandCenter.Api.Services;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace IncidentCommandCenter.Api.Tests;
@@ -11,11 +12,13 @@ public sealed class RuntimeValidationTests
     public void AgentRuntime_Throws_WhenRequiredEnvironmentVariablesAreMissing()
     {
         string? endpointBefore = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        string? fallbackEndpointBefore = Environment.GetEnvironmentVariable("AOI_ENDPOINT_SWDN");
         string? deploymentBefore = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME");
 
         try
         {
             Environment.SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", null);
+            Environment.SetEnvironmentVariable("AOI_ENDPOINT_SWDN", null);
             Environment.SetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME", null);
 
             var env = new TestHostEnvironment
@@ -23,12 +26,24 @@ public sealed class RuntimeValidationTests
                 ContentRootPath = ResolveBackendRoot(),
             };
 
-            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => new AgentRuntime(env));
+            ISkillCatalogService catalog = new FileAgentSkillsProvider(env);
+            ISkillTraceStore traceStore = new InMemorySkillTraceStore();
+            SkillRunContextAccessor runContextAccessor = new();
+
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+                new AgentRuntime(
+                    env,
+                    catalog,
+                    traceStore,
+                    runContextAccessor,
+                    NullLogger<AgentRuntime>.Instance,
+                    NullLoggerFactory.Instance));
             Assert.Contains("AZURE_OPENAI_ENDPOINT", ex.Message);
         }
         finally
         {
             Environment.SetEnvironmentVariable("AZURE_OPENAI_ENDPOINT", endpointBefore);
+            Environment.SetEnvironmentVariable("AOI_ENDPOINT_SWDN", fallbackEndpointBefore);
             Environment.SetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME", deploymentBefore);
         }
     }

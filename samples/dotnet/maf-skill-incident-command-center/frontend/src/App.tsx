@@ -16,6 +16,30 @@ const STAGE_LABELS: Record<string, string> = {
   completed: "Completed",
 };
 
+type BootstrapData = {
+  sessionId: string;
+  incidents: Incident[];
+  skills: SkillSummary[];
+};
+
+let bootstrapPromise: Promise<BootstrapData> | null = null;
+
+function getBootstrapData(): Promise<BootstrapData> {
+  if (!bootstrapPromise) {
+    bootstrapPromise = Promise.all([
+      createSession(),
+      getIncidents(),
+      getSkills(),
+    ]).then(([session, incidents, skills]) => ({
+      sessionId: session.sessionId,
+      incidents,
+      skills,
+    }));
+  }
+
+  return bootstrapPromise;
+}
+
 export default function App() {
   const [sessionId, setSessionId] = useState<string>("");
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -31,15 +55,17 @@ export default function App() {
   const [isDraftLoading, setIsDraftLoading] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     async function bootstrap() {
       try {
-        const [session, incidentData, skillData] = await Promise.all([
-          createSession(),
-          getIncidents(),
-          getSkills(),
-        ]);
+        const { sessionId: bootSessionId, incidents: incidentData, skills: skillData } = await getBootstrapData();
 
-        setSessionId(session.sessionId);
+        if (!active) {
+          return;
+        }
+
+        setSessionId(bootSessionId);
         setIncidents(incidentData);
         setSkills(skillData);
 
@@ -47,11 +73,17 @@ export default function App() {
           setSelectedIncidentId(incidentData[0].id);
         }
       } catch (bootstrapError) {
-        setError((bootstrapError as Error).message);
+        if (active) {
+          setError((bootstrapError as Error).message);
+        }
       }
     }
 
     bootstrap();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const selectedIncident = useMemo(
