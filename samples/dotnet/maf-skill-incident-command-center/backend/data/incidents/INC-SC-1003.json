@@ -1,0 +1,21 @@
+{
+  "id": "INC-SC-1003",
+  "title": "Cross-region customs hold on critical components",
+  "region": "NA",
+  "vendor": "Vertex Components",
+  "status": "watch",
+  "openOrders": 19,
+  "atRiskOrders": 4,
+  "slaDeadlineUtc": "2026-02-27T12:00:00Z",
+  "summary": "A documentation mismatch triggered customs review for a shipment of high-priority electronic components.",
+  "signals": [
+    "Customs broker reported HS code mismatch",
+    "Two production lines move to constrained mode within 48 hours",
+    "Alternative inventory available for 3 days"
+  ],
+  "constraints": [
+    "Regulatory paperwork must be corrected before release",
+    "Air-freight exception requires director approval"
+  ],
+  "lastUpdatedUtc": "2026-02-21T07:05:00Z"
+}

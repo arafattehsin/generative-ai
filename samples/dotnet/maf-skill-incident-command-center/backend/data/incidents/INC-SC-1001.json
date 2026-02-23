@@ -1,0 +1,21 @@
+{
+  "id": "INC-SC-1001",
+  "title": "Port congestion delaying refrigerated shipments",
+  "region": "APAC",
+  "vendor": "Blue Harbor Logistics",
+  "status": "active",
+  "openOrders": 42,
+  "atRiskOrders": 17,
+  "slaDeadlineUtc": "2026-02-22T08:00:00Z",
+  "summary": "A weather-related port backlog has delayed outbound refrigerated containers by 36 hours.",
+  "signals": [
+    "Port queue times increased from 5h to 19h",
+    "Cold-chain telemetry reports 2 temperature variance alerts",
+    "Carrier reduced reefer slot allocation by 18%"
+  ],
+  "constraints": [
+    "Perishable inventory expires within 72 hours",
+    "No premium reroute approved above 12% cost uplift"
+  ],
+  "lastUpdatedUtc": "2026-02-21T02:15:00Z"
+}
