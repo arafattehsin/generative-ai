@@ -45,7 +45,7 @@ export default function App() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [skills, setSkills] = useState<SkillSummary[]>([]);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>("");
-  const [triagePrompt, setTriagePrompt] = useState<string>("Prioritize actions for the first two hours and explain escalation.");
+  const [triagePrompt, setTriagePrompt] = useState<string>("Prioritise actions for the first two hours and explain escalation.");
   const [triage, setTriage] = useState<TriageResponse | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<SkillEvent[]>([]);
   const [audience, setAudience] = useState<string>("customer");
