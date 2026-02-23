@@ -18,18 +18,69 @@ Scenario: **Supply Chain Disruption Triage** with a phased capability model:
 
 ```text
 maf-skill-incident-command-center/
+├── .gitignore
+├── README.md
 ├── backend/
 │   ├── Program.cs
+│   ├── IncidentCommandCenter.Api.csproj
+│   ├── appsettings.json
+│   ├── appsettings.Development.json
 │   ├── Models/
+│   │   └── Contracts.cs
 │   ├── Services/
-│   ├── data/incidents/*.json
+│   │   ├── AgentRuntime.cs
+│   │   ├── CommunicationDraftService.cs
+│   │   ├── FileIncidentRepository.cs
+│   │   ├── FileSkillCatalogService.cs
+│   │   ├── InMemorySkillTraceStore.cs
+│   │   ├── NativeAgentSkillsContextProvider.cs
+│   │   ├── ResponseParsing.cs
+│   │   ├── SkillEventFactory.cs
+│   │   ├── SkillExecutionGuard.cs
+│   │   ├── SkillRunContextAccessor.cs
+│   │   └── [interfaces: I*.cs]
+│   ├── data/
+│   │   └── incidents/
+│   │       ├── INC-SC-1001.json
+│   │       ├── INC-SC-1002.json
+│   │       └── INC-SC-1003.json
 │   ├── skills/
 │   │   ├── incident-triage/
+│   │   │   ├── SKILL.md
+│   │   │   ├── references/
+│   │   │   │   ├── SLA_POLICY.md
+│   │   │   │   ├── ESCALATION_MATRIX.md
+│   │   │   │   └── VENDOR_CONSTRAINTS.md
+│   │   │   └── assets/
+│   │   │       ├── triage-report-template.md
+│   │   │       └── executive-brief-template.md
 │   │   └── incident-communications/
-│   └── tests/IncidentCommandCenter.Api.Tests/
-├── frontend/
-│   └── src/
-└── README.md
+│   │       ├── SKILL.md
+│   │       ├── references/
+│   │       │   └── tone-guidelines.md
+│   │       └── assets/
+│   │           ├── customer-update-template.md
+│   │           └── supplier-escalation-template.md
+│   └── tests/
+│       └── IncidentCommandCenter.Api.Tests/
+│           ├── IncidentCommandCenter.Api.Tests.csproj
+│           ├── IncidentRepositoryTests.cs
+│           ├── RuntimeValidationTests.cs
+│           ├── SkillCatalogTests.cs
+│           ├── SkillExecutionGuardTests.cs
+│           └── SkillTraceStoreTests.cs
+└── frontend/
+    ├── .env.example
+    ├── index.html
+    ├── package.json
+    ├── tsconfig.json
+    ├── vite.config.ts
+    └── src/
+        ├── api.ts
+        ├── App.tsx
+        ├── main.tsx
+        ├── styles.css
+        └── types.ts
 ```
 
 ## Skill Packages
