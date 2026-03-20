@@ -48,6 +48,13 @@
 /samples/dotnet/processframework-sk/.vs/ProjectEvaluation
 /notebooks/semantic-kernel/.vs/semantic-kernel/CopilotIndices/17.14.90.56529
 /notebooks/semantic-kernel/.vs/semantic-kernel/FileContentIndex
+/samples/dotnet/maf-concurrent-orchestration/backend/**/bin/
+/samples/dotnet/maf-concurrent-orchestration/backend/**/obj/
+/samples/dotnet/maf-concurrent-orchestration/backend/**/.vs/
+/samples/dotnet/maf-concurrent-orchestration/backend/**/*.db
+/samples/dotnet/maf-concurrent-orchestration/backend/**/*.db-shm
+/samples/dotnet/maf-concurrent-orchestration/backend/**/*.db-wal
+/samples/dotnet/maf-concurrent-orchestration/frontend/*.tsbuildinfo
 /notebooks/semantic-kernel/.vs
 /.vscode
 /notebooks/.github

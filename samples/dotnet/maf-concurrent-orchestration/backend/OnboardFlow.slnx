@@ -1,0 +1,6 @@
+<Solution>
+    <Project Path="OnboardFlow.Api/OnboardFlow.Api.csproj" />
+    <Project Path="OnboardFlow.Application/OnboardFlow.Application.csproj" />
+    <Project Path="OnboardFlow.Domain/OnboardFlow.Domain.csproj" />
+    <Project Path="OnboardFlow.Infrastructure/OnboardFlow.Infrastructure.csproj" />
+</Solution>
