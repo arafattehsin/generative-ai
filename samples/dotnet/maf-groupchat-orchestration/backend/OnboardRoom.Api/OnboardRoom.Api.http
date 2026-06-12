@@ -1,0 +1,6 @@
+@OnboardRoom.Api_HostAddress = http://localhost:5273
+
+GET {{OnboardRoom.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
