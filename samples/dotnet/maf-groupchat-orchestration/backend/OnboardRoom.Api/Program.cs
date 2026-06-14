@@ -82,6 +82,15 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<RunsHub>("/hubs/runs");
 
+app.MapGet("/api/config", (FoundryOptions options) => Results.Json(new
+{
+    isConfigured = Uri.TryCreate(options.ProjectEndpoint, UriKind.Absolute, out _) &&
+        !string.IsNullOrWhiteSpace(options.DeploymentName),
+    hasProjectEndpoint = Uri.TryCreate(options.ProjectEndpoint, UriKind.Absolute, out _),
+    hasDeploymentName = !string.IsNullOrWhiteSpace(options.DeploymentName),
+    toolboxName = options.ToolboxName,
+}));
+
 app.MapPost("/responses", () => Results.Json(new
 {
     message = "This sample exposes Foundry through Microsoft Agent Framework workflows. Host this API behind a Foundry Responses app and map the toolboxes with AddFoundryToolboxes(...) for production-hosted response routing.",

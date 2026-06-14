@@ -6,6 +6,7 @@ using OnboardRoom.Application.Interfaces;
 using OnboardRoom.Application.Services;
 using OnboardRoom.Domain;
 using OnboardRoom.Domain.Entities;
+using OnboardRoom.Infrastructure.Foundry;
 
 namespace OnboardRoom.Api.Controllers;
 
@@ -15,6 +16,7 @@ public sealed class RunsController(
     IRunRepository repository,
     RunOrchestrator orchestrator,
     IServiceScopeFactory scopeFactory,
+    FoundryOptions foundryOptions,
     ILogger<RunsController> logger) : ControllerBase
 {
     [HttpGet]
@@ -39,6 +41,11 @@ public sealed class RunsController(
             return this.BadRequest("InputText is required.");
         }
 
+        if (!IsFoundryConfigured())
+        {
+            return this.BadRequest("Configure Foundry:ProjectEndpoint/FOUNDRY_PROJECT_ENDPOINT and Foundry:DeploymentName/FOUNDRY_MODEL before starting a run.");
+        }
+
         WorkflowRun run = await orchestrator.CreateRunAsync(request, cancellationToken);
         _ = Task.Run(async () => await ExecuteRunInBackgroundAsync(run.Id), CancellationToken.None);
 
@@ -60,6 +67,11 @@ public sealed class RunsController(
         if (existing is null)
         {
             return this.NotFound();
+        }
+
+        if (!IsFoundryConfigured())
+        {
+            return this.BadRequest("Configure Foundry:ProjectEndpoint/FOUNDRY_PROJECT_ENDPOINT and Foundry:DeploymentName/FOUNDRY_MODEL before rerunning.");
         }
 
         WorkflowRun rerun = await orchestrator.RerunFromStepAsync(id, request.FromStep, cancellationToken);
@@ -131,4 +143,8 @@ public sealed class RunsController(
             logger.LogError(ex, "OnboardRoom run {RunId} failed.", runId);
         }
     }
+
+    private bool IsFoundryConfigured()
+        => Uri.TryCreate(foundryOptions.ProjectEndpoint, UriKind.Absolute, out _) &&
+            !string.IsNullOrWhiteSpace(foundryOptions.DeploymentName);
 }

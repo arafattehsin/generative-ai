@@ -43,6 +43,7 @@ export default function App() {
   const [tone] = useState('Executive')
 
   const samplesQuery = useQuery({ queryKey: ['samples'], queryFn: api.getSamples })
+  const configQuery = useQuery({ queryKey: ['config'], queryFn: api.getConfig })
   const runsQuery = useQuery({ queryKey: ['runs'], queryFn: api.getRuns, refetchInterval: 1500 })
   const stepsQuery = useQuery({ queryKey: ['steps'], queryFn: api.getSteps })
   const activeRunId = selectedRunId ?? runsQuery.data?.[0]?.id ?? null
@@ -58,8 +59,10 @@ export default function App() {
   const requestText = inputText ?? samples[sampleIndex]?.text ?? ''
   const currentRun = runQuery.data
   const runningCount = (runsQuery.data ?? []).filter((run) => run.status === 'Running').length
-  const loading = samplesQuery.isLoading || runsQuery.isLoading || stepsQuery.isLoading
-  const error = samplesQuery.error ?? runsQuery.error ?? stepsQuery.error
+  const loading = samplesQuery.isLoading || configQuery.isLoading || runsQuery.isLoading || stepsQuery.isLoading
+  const error = samplesQuery.error ?? configQuery.error ?? runsQuery.error ?? stepsQuery.error
+  const config = configQuery.data
+  const isFoundryConfigured = config?.isConfigured ?? false
 
   useEffect(() => {
     if (!activeRunId || liveEvents.length === 0) return
@@ -96,11 +99,17 @@ export default function App() {
       <NavRail />
 
       <div className="main-surface">
-        <StatusBar run={currentRun} runningCount={runningCount} />
+        <StatusBar run={currentRun} runningCount={runningCount} isFoundryConfigured={isFoundryConfigured} />
 
         {error ? (
           <Alert color="red" icon={<IconX size={18} />} className="top-alert">
             {error instanceof Error ? error.message : 'API unavailable'}
+          </Alert>
+        ) : null}
+
+        {!loading && !isFoundryConfigured ? (
+          <Alert color="orange" icon={<IconX size={18} />} className="top-alert">
+            Configure Foundry project endpoint and model deployment before starting a run.
           </Alert>
         ) : null}
 
@@ -121,6 +130,7 @@ export default function App() {
                 maxRounds={maxRounds}
                 tone={tone}
                 isSubmitting={createRun.isPending}
+                isConfigured={isFoundryConfigured}
                 onSample={(index) => {
                   setSampleIndex(index)
                   setInputText(null)
@@ -175,7 +185,7 @@ function NavRail() {
   )
 }
 
-function StatusBar({ run, runningCount }: { run?: RunDetail; runningCount: number }) {
+function StatusBar({ run, runningCount, isFoundryConfigured }: { run?: RunDetail; runningCount: number; isFoundryConfigured: boolean }) {
   const status = run?.status ?? (runningCount > 0 ? 'Running' : 'Ready')
   return (
     <header className="status-bar">
@@ -185,7 +195,7 @@ function StatusBar({ run, runningCount }: { run?: RunDetail; runningCount: numbe
       </div>
       <StatusMetric label="Run Status" value={status.toUpperCase()} tone={status === 'Running' ? 'green' : 'teal'} />
       <StatusMetric label="Elapsed" value={formatDuration(run?.totalDurationMs ?? 0).replace('Queued', '00:00:00')} />
-      <StatusMetric label="Deployment" value="Configured" />
+      <StatusMetric label="Deployment" value={isFoundryConfigured ? 'Configured' : 'Missing config'} tone={isFoundryConfigured ? 'teal' : undefined} />
       <div className="correlation">
         <span>Correlation ID</span>
         <strong>{run ? shortId(run.id) : 'No run'}</strong>
@@ -214,6 +224,7 @@ function IntakeStudio(props: {
   maxRounds: number
   tone: string
   isSubmitting: boolean
+  isConfigured: boolean
   onSample: (index: number) => void
   onText: (value: string) => void
   onUrgency: (value: string) => void
@@ -253,8 +264,8 @@ function IntakeStudio(props: {
       </div>
 
       <div className="submit-row">
-        <Button fullWidth size="md" color="teal" loading={props.isSubmitting} leftSection={<IconSend size={16} />} onClick={props.onStart}>
-          Submit to Boardroom
+        <Button fullWidth size="md" color="teal" loading={props.isSubmitting} disabled={!props.isConfigured || !props.requestText.trim()} leftSection={<IconSend size={16} />} onClick={props.onStart}>
+          {props.isConfigured ? 'Submit to Boardroom' : 'Configure Foundry first'}
         </Button>
       </div>
     </section>

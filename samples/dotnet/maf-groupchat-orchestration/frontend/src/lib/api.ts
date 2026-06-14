@@ -1,4 +1,4 @@
-import type { RerunResponse, RunDetail, RunSummary, SampleRequest, StartRunRequest, StartRunResponse, StepDefinition } from './types'
+import type { AppConfig, RerunResponse, RunDetail, RunSummary, SampleRequest, StartRunRequest, StartRunResponse, StepDefinition } from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5088'
 
@@ -22,6 +22,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   baseUrl: API_BASE_URL,
+  getConfig: () => request<AppConfig>('/api/config'),
   getSamples: () => request<SampleRequest[]>('/api/samples'),
   getRuns: () => request<RunSummary[]>('/api/runs'),
   getRun: (id: string) => request<RunDetail>(`/api/runs/${id}`),

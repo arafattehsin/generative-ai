@@ -85,6 +85,13 @@ export interface SampleRequest {
   text: string
 }
 
+export interface AppConfig {
+  isConfigured: boolean
+  hasProjectEndpoint: boolean
+  hasDeploymentName: boolean
+  toolboxName: string
+}
+
 export interface WorkflowEvent {
   runId: string
   kind: string
