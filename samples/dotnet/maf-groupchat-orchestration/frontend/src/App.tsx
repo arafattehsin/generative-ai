@@ -1,4 +1,4 @@
-import { Alert, Button, Loader, Progress, Select, Text, Textarea, Title } from '@mantine/core'
+import { Alert, Button, Loader, Progress, Select, Text, Textarea, Title, Tooltip } from '@mantine/core'
 import { showNotification } from '@mantine/notifications'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -21,7 +21,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { useRunStream } from './hooks/useRunStream'
 import { api } from './lib/api'
-import { formatDate, formatDuration, formatStepName, getStepRun, parseRecommendation, shortId } from './lib/presentation'
+import { formatDate, formatDuration, formatStepName, getStepRun, parseApiDate, parseRecommendation, shortId } from './lib/presentation'
 import type { RunDetail, RunSummary, SampleRequest, StepDefinition, WorkflowEvent } from './lib/types'
 
 const navItems = [
@@ -63,6 +63,7 @@ export default function App() {
   const error = samplesQuery.error ?? configQuery.error ?? runsQuery.error ?? stepsQuery.error
   const config = configQuery.data
   const isFoundryConfigured = config?.isConfigured ?? false
+  const currentRunElapsedMs = useRunElapsedMs(currentRun)
 
   useEffect(() => {
     if (!activeRunId || liveEvents.length === 0) return
@@ -99,7 +100,7 @@ export default function App() {
       <NavRail />
 
       <div className="main-surface">
-        <StatusBar run={currentRun} runningCount={runningCount} isFoundryConfigured={isFoundryConfigured} />
+        <StatusBar run={currentRun} runningCount={runningCount} isFoundryConfigured={isFoundryConfigured} elapsedMs={currentRunElapsedMs} />
 
         {error ? (
           <Alert color="red" icon={<IconX size={18} />} className="top-alert">
@@ -141,7 +142,7 @@ export default function App() {
                 onUrgency={setUrgency}
                 onStart={() => createRun.mutate({ inputText: requestText, region, urgency, maxRounds, tone })}
               />
-              <Boardroom run={currentRun} events={liveEvents} />
+              <Boardroom run={currentRun} events={liveEvents} elapsedMs={currentRunElapsedMs} />
               <ChairPanel run={currentRun} onCancel={() => activeRunId && cancel.mutate(activeRunId)} />
             </main>
 
@@ -185,7 +186,7 @@ function NavRail() {
   )
 }
 
-function StatusBar({ run, runningCount, isFoundryConfigured }: { run?: RunDetail; runningCount: number; isFoundryConfigured: boolean }) {
+function StatusBar({ run, runningCount, isFoundryConfigured, elapsedMs }: { run?: RunDetail; runningCount: number; isFoundryConfigured: boolean; elapsedMs: number }) {
   const status = run?.status ?? (runningCount > 0 ? 'Running' : 'Ready')
   return (
     <header className="status-bar">
@@ -194,7 +195,7 @@ function StatusBar({ run, runningCount, isFoundryConfigured }: { run?: RunDetail
         <Text>Microsoft Foundry Multi-Agent Orchestration</Text>
       </div>
       <StatusMetric label="Run Status" value={status.toUpperCase()} tone={status === 'Running' ? 'green' : 'teal'} />
-      <StatusMetric label="Elapsed" value={formatDuration(run?.totalDurationMs ?? 0).replace('Queued', '00:00:00')} />
+      <StatusMetric label="Elapsed" value={formatClockDuration(elapsedMs)} />
       <StatusMetric label="Deployment" value={isFoundryConfigured ? 'Configured' : 'Missing config'} tone={isFoundryConfigured ? 'teal' : undefined} />
       <div className="correlation">
         <span>Correlation ID</span>
@@ -281,13 +282,13 @@ function PanelHeader({ title, action }: { title: string; action?: string }) {
   )
 }
 
-function Boardroom({ run, events }: { run?: RunDetail; events: WorkflowEvent[] }) {
+function Boardroom({ run, events, elapsedMs }: { run?: RunDetail; events: WorkflowEvent[]; elapsedMs: number }) {
   const transcript = useMemo(() => run?.messages ?? [], [run?.messages])
   const timelineItems = events.length
     ? events.slice(0, 5).map((event) => ({
-      key: `${event.kind}-${event.timestamp}`,
+      key: `${event.kind}-${event.stepName ?? event.speaker ?? 'event'}-${event.timestamp}`,
       time: formatEventTime(event.timestamp),
-      label: event.speaker ? `${formatSpeaker(event.speaker)} spoke` : formatEventKind(event.kind),
+      label: formatTimelineEvent(event),
     }))
     : transcript.slice(-5).reverse().map((message) => ({
       key: message.id,
@@ -314,6 +315,7 @@ function Boardroom({ run, events }: { run?: RunDetail; events: WorkflowEvent[] }
   }
   const boardroomStatus = run?.status ?? 'Ready'
   const phase = getBoardroomPhase(run)
+  const showElapsedInCore = run?.status === 'Running'
   const agents = [
     { role: 'Intake Agent', area: 'Intake', step: 'IntakeNormalize', state: stateFor('IntakeNormalize'), tone: 'teal', text: run ? 'Normalizes the onboarding request for the boardroom.' : 'Waiting for a submitted onboarding request.', time: timeFor('IntakeNormalize') },
     { role: 'Benefits Agent', area: 'Benefits', step: 'BoardroomReview', state: stateFor('BoardroomReview'), tone: 'amber', text: 'Reviews benefits orientation and employee experience needs.', time: timeFor('BoardroomReview') },
@@ -348,7 +350,10 @@ function Boardroom({ run, events }: { run?: RunDetail; events: WorkflowEvent[] }
         ))}
         <div className="transcript-core">
           <div className="transcript-user" />
-          <strong>{phase.current}</strong>
+          <strong>
+            {phase.current}
+            {showElapsedInCore ? <span className="elapsed-clock">{formatClockDuration(elapsedMs)}</span> : null}
+          </strong>
           <div className="phase-progress"><i style={{ width: `${phase.progress}%` }} /></div>
           {timelineItems.length ? (
             <ul>
@@ -418,11 +423,13 @@ function BoardroomOutput({ run, transcript }: { run?: RunDetail; transcript: Run
           <span>Speaker Notes</span>
           <div>
             {turns.map((message) => (
-              <article key={message.id}>
-                <strong>{formatSpeaker(message.speaker)}</strong>
-                <em>{formatDate(message.createdAt)}</em>
-                <p>{cleanTranscriptPreview(message.content)}</p>
-              </article>
+              <Tooltip key={message.id} label={cleanTranscriptText(message.content, 700)} multiline w={460} withinPortal withArrow openDelay={250} position="top" classNames={{ tooltip: 'speaker-note-tooltip' }}>
+                <article tabIndex={0} aria-label={`${formatSpeaker(message.speaker)} speaker note`}>
+                  <strong>{formatSpeaker(message.speaker)}</strong>
+                  <em>{formatDate(message.createdAt)}</em>
+                  <p>{cleanTranscriptPreview(message.content)}</p>
+                </article>
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -462,10 +469,49 @@ function getBoardroomPhase(run?: RunDetail) {
   }
 }
 
+function useRunElapsedMs(run?: RunDetail) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (run?.status !== 'Running') return
+
+    setNow(Date.now())
+    const interval = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(interval)
+  }, [run?.id, run?.status])
+
+  return getRunElapsedMs(run, now)
+}
+
+function getRunElapsedMs(run: RunDetail | undefined, now: number) {
+  if (!run) return 0
+  if (run.totalDurationMs) return run.totalDurationMs
+
+  const startDate = parseApiDate(run.startedAt ?? run.createdAt)
+  if (!startDate) return 0
+  const start = startDate.getTime()
+
+  if (run.completedAt) {
+    const completedDate = parseApiDate(run.completedAt)
+    return completedDate ? Math.max(0, completedDate.getTime() - start) : 0
+  }
+
+  if (run.status === 'Running') return Math.max(0, now - start)
+  return 0
+}
+
+function formatClockDuration(ms: number) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+}
+
 function formatEventTime(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Pending'
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  const date = parseApiDate(value)
+  if (!date) return 'Pending'
+  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 function formatSpeaker(value: string) {
@@ -485,14 +531,43 @@ function formatEventKind(value: string) {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-function cleanTranscriptPreview(value: string) {
-  return value
-    .replace(/#{1,6}\s*/g, '')
+function formatTimelineEvent(event: WorkflowEvent) {
+  if (event.speaker) return `${formatSpeaker(event.speaker)} spoke`
+
+  const stepName = event.stepName ? formatTimelineStepName(event.stepName) : undefined
+  if (event.kind === 'StepStarted' && stepName) return `${stepName} started`
+  if (event.kind === 'StepCompleted' && stepName) return `${stepName} completed`
+  if (event.kind === 'RunStarted') return 'Run started'
+  if (event.kind === 'RunCompleted') return 'Run completed'
+  if (event.kind === 'RunFailed') return 'Run failed'
+  if (event.kind === 'GroupChatCompleted') return 'Group chat completed'
+  return formatEventKind(event.kind)
+}
+
+function formatTimelineStepName(value: string) {
+  if (value === 'IntakeNormalize') return 'Intake'
+  if (value === 'BoardroomReview') return 'Boardroom'
+  if (value === 'ChairRecommendation') return 'Chair'
+  if (value === 'FinalPackage') return 'Export'
+  return formatStepName(value)
+}
+
+function cleanTranscriptText(value: string, maxLength?: number) {
+  const text = value
+    .replace(/#{1,6}\s*/g, ' ')
     .replace(/\*\*/g, '')
-    .replace(/\s*-\s*/g, ' - ')
+    .replace(/(?:^|\s)[*-]\s+/g, ' - ')
+    .replace(/([A-Za-z0-9)])-\s+/g, '$1 - ')
+    .replace(/([a-z)])([A-Z])/g, '$1 $2')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 260)
+
+  if (!maxLength || text.length <= maxLength) return text
+  return `${text.slice(0, maxLength - 3).trimEnd()}...`
+}
+
+function cleanTranscriptPreview(value: string) {
+  return cleanTranscriptText(value, 220)
 }
 
 function AgentCard({ agent, index }: { agent: { role: string; area: string; state: string; tone: string; text: string; time: string }; index: number }) {
@@ -578,7 +653,7 @@ function RunHistory({ runs, activeRunId, onSelect }: { runs: RunSummary[]; activ
           <span>Run ID</span><span>Status</span><span>Summary</span><span>Started At</span><span>Duration</span><span>Risk</span><span>Decision</span><span>Actions</span>
         </div>
         {runs.map((run) => (
-          <button key={run.id} className={run.id === activeRunId ? 'history-row active' : 'history-row'} onClick={() => onSelect(run.id)}>
+          <button key={run.id} className={`history-row ${run.status.toLowerCase()}${run.id === activeRunId ? ' active' : ''}`} onClick={() => onSelect(run.id)}>
             <span>{shortId(run.id)}</span>
             <StatusPill status={run.status} />
             <strong>{getRunSummaryLabel(run)}</strong>

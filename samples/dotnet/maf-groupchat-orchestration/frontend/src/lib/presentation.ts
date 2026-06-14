@@ -22,9 +22,18 @@ export function shortId(id?: string) {
   return id ? id.slice(0, 8) : 'none'
 }
 
+export function parseApiDate(value?: string) {
+  if (!value) return undefined
+
+  const hasTimeZone = /(?:z|[+-]\d{2}:?\d{2})$/i.test(value)
+  const date = new Date(hasTimeZone ? value : `${value}Z`)
+  return Number.isNaN(date.getTime()) ? undefined : date
+}
+
 export function formatDate(value?: string) {
-  if (!value) return 'Pending'
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+  const date = parseApiDate(value)
+  if (!date) return 'Pending'
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
 export function progress(run?: RunDetail | RunSummary) {
