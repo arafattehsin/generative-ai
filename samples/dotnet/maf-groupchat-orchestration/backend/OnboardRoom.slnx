@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="OnboardRoom.Api/OnboardRoom.Api.csproj" />
+  <Project Path="OnboardRoom.Application/OnboardRoom.Application.csproj" />
+  <Project Path="OnboardRoom.Console/OnboardRoom.Console.csproj" />
+  <Project Path="OnboardRoom.Domain/OnboardRoom.Domain.csproj" />
+  <Project Path="OnboardRoom.Infrastructure/OnboardRoom.Infrastructure.csproj" />
+  <Project Path="OnboardRoom.Tests/OnboardRoom.Tests.csproj" />
+</Solution>

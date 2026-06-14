@@ -1,0 +1,13 @@
+backend/**/bin/
+backend/**/obj/
+backend/**/.vs/
+backend/**/*.db
+backend/**/*.db-shm
+backend/**/*.db-wal
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/.env
+frontend/.env.*
+!.gitignore
