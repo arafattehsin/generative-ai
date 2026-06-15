@@ -68,4 +68,4 @@ dotnet run --project .\backend\OnboardRoom.Console\OnboardRoom.Console.csproj --
 
 - `--create-toolbox` creates a new toolbox version with web search, Microsoft Learn MCP, and code interpreter tools. It does not delete existing toolbox versions.
 - The console app creates hosted agent versions for each run and deletes them in `finally`.
-- The sample uses local Agent Framework project references so it stays aligned with the adjacent latest source checkout.
+- The sample uses Microsoft Agent Framework packages restored from NuGet.
