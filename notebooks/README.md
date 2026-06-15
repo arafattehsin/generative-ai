@@ -1,7 +1,10 @@
-# 📔 Notebooks 
-Welcome to the notebooks directory of our Generative AI repository! This is where the magic happens, where ideas take shape and transform into reality. This folder is a treasure trove of examples and samples that demonstrate the power and potential of Generative AI.
+# 📔 Notebooks
 
-## 🧊 Azure OpenAI 
+> **Maintenance notice:** This notebooks area is not being actively managed because Polyglot Notebooks and .NET Interactive have been deprecated. The notebooks are retained as historical learning material, but new work should prefer the maintained samples under [`../samples`](../samples/) or another actively supported notebook/runtime experience. See the official [.NET Interactive and Polyglot Notebooks deprecation announcement](https://github.com/dotnet/interactive/issues/4163).
+
+Welcome to the notebooks directory of our Generative AI repository. This folder contains examples that demonstrate Azure OpenAI, Semantic Kernel, and Microsoft Agent Framework concepts.
+
+## 🧊 Azure OpenAI
 Our first stop is the Azure OpenAI folder. Here, you'll find a collection of samples and examples that showcase the capabilities of Azure OpenAI. Whether you're a seasoned AI practitioner or a curious enthusiast, these notebooks will guide you through the fascinating world of Azure OpenAI. From text generation to translation, and from chatbots to code generation, there's something for everyone here.
 
 ## 🔮 Semantic Kernel
@@ -10,4 +13,4 @@ This is where we speak the language of AI. From semantic search to text summariz
 ## 🤖 Microsoft Agent Framework
 Step into the world of intelligent agents and multi-agent workflows! The Microsoft Agent Framework is an open-source .NET library that provides clear primitives for building reliable AI agents. Explore notebooks that showcase single-agent chat, stateful conversations, function tools, human-in-the-loop approvals, multimodal capabilities, and memory management. Whether you're building a simple chatbot or orchestrating complex multi-agent systems, these examples will help you harness the power of agentic AI development.
 
-We hope you enjoy exploring these notebooks as much as we enjoyed creating them. Happy coding!
+Because this area is no longer actively maintained, verify package versions, VS Code extension compatibility, and service SDKs before using any notebook content in current projects.
