@@ -13,16 +13,13 @@ import {
   Alert,
   Loader,
   Code,
-  Divider,
   Progress,
   Box,
-  ThemeIcon,
   Grid,
   Tabs,
   ScrollArea,
   rem,
   CopyButton,
-  ActionIcon,
   Tooltip
 } from '@mantine/core';
 import {

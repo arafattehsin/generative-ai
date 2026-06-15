@@ -18,7 +18,6 @@ import {
   Box,
   rem,
   ThemeIcon,
-  Tooltip,
   SimpleGrid
 } from '@mantine/core';
 import { 

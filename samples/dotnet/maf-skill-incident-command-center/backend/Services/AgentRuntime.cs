@@ -3,7 +3,6 @@ using Azure;
 using Azure.AI.OpenAI;
 using Azure.Identity;
 using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.ChatClient;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using OpenAI;
@@ -15,7 +14,7 @@ public sealed class AgentRuntime
     private readonly AIAgent _agent;
     private readonly SkillRunContextAccessor _runContextAccessor;
     private readonly ILogger<AgentRuntime> _logger;
-    private readonly ConcurrentDictionary<string, AgentThread> _sessions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, AgentSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
 
     public AgentRuntime(
         IHostEnvironment environment,
@@ -43,7 +42,7 @@ public sealed class AgentRuntime
             ? new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
             : new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
 
-        var chatClient = client.GetChatClient(deployment);
+        IChatClient chatClient = client.GetChatClient(deployment).AsIChatClient();
 
         ChatClientAgentOptions options = new()
         {
@@ -52,14 +51,17 @@ public sealed class AgentRuntime
             {
                 Instructions = "You are a supply chain disruption specialist. Use the native skills tools when domain expertise is needed.",
             },
-            AIContextProviderFactory = _ => new NativeAgentSkillsContextProvider(
-                skillCatalog,
-                traceStore,
-                _runContextAccessor,
-                loggerFactory.CreateLogger<NativeAgentSkillsContextProvider>()),
+            AIContextProviders =
+            [
+                new NativeAgentSkillsContextProvider(
+                    skillCatalog,
+                    traceStore,
+                    _runContextAccessor,
+                    loggerFactory.CreateLogger<NativeAgentSkillsContextProvider>())
+            ],
         };
 
-        _agent = chatClient.CreateAIAgent(options);
+        _agent = chatClient.AsAIAgent(options);
 
         _logger.LogInformation(
             "Agent runtime initialized. Environment={EnvironmentName}, Deployment={Deployment}, EndpointHost={EndpointHost}",
@@ -75,14 +77,13 @@ public sealed class AgentRuntime
         // Construction already validates required runtime config.
     }
 
-    public Task<string> CreateSessionAsync(CancellationToken cancellationToken = default)
+    public async Task<string> CreateSessionAsync(CancellationToken cancellationToken = default)
     {
-        AgentThread session = _agent.GetNewThread();
+        AgentSession session = await _agent.CreateSessionAsync(cancellationToken);
         string sessionId = $"session-{Guid.NewGuid():N}";
         _sessions[sessionId] = session;
         _logger.LogInformation("Created agent session {SessionId}", sessionId);
-        _ = cancellationToken;
-        return Task.FromResult(sessionId);
+        return sessionId;
     }
 
     public bool SessionExists(string sessionId) => _sessions.ContainsKey(sessionId);
@@ -93,7 +94,7 @@ public sealed class AgentRuntime
         string? runId = null,
         CancellationToken cancellationToken = default)
     {
-        if (!_sessions.TryGetValue(sessionId, out AgentThread? session))
+        if (!_sessions.TryGetValue(sessionId, out AgentSession? session))
         {
             throw new KeyNotFoundException($"Session '{sessionId}' does not exist.");
         }

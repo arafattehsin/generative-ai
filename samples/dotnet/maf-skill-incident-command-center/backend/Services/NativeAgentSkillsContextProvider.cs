@@ -16,7 +16,7 @@ public sealed class NativeAgentSkillsContextProvider(
     private readonly AITool _readSkillResourceTool = AIFunctionFactory.Create((string skillName, string resourcePath) =>
         ReadSkillResource(skillCatalog, traceStore, runContextAccessor, logger, skillName, resourcePath));
 
-    public override ValueTask<AIContext> InvokingAsync(InvokingContext context, CancellationToken cancellationToken = default)
+    protected override ValueTask<AIContext> ProvideAIContextAsync(InvokingContext context, CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Models.SkillSummary> skills = skillCatalog.GetSkills();
         string advertisedSkills = string.Join("\n", skills.Select(skill => $"- {skill.Name}: {skill.Description}"));
@@ -47,7 +47,7 @@ Tool usage protocol:
         return ValueTask.FromResult(aiContext);
     }
 
-    public override ValueTask InvokedAsync(InvokedContext context, CancellationToken cancellationToken = default)
+    protected override ValueTask StoreAIContextAsync(InvokedContext context, CancellationToken cancellationToken = default)
     {
         _ = context;
         _ = cancellationToken;
