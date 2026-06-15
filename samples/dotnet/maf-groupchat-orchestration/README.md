@@ -23,7 +23,7 @@ The console app creates short-lived hosted Foundry agent versions for the run, w
 
 - .NET 10 SDK
 - Azure login with access to the target Foundry project
-- The adjacent `agent-framework` repo checked out at `C:\Users\AT\source\repos\agent-framework`
+- Microsoft Agent Framework packages restored from NuGet
 
 ## Configuration
 
