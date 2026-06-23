@@ -119,3 +119,7 @@
 /samples/dotnet/maf-workflow-orchestration/frontend/dist
 /samples/dotnet/maf-workflow-orchestration/frontend/.env.local
 /samples/dotnet/maf-workflow-orchestration/frontend/.env.*.local
+
+# .NET - maf-procurement-harness
+/samples/dotnet/maf-procurement-harness/backend/**/bin/
+/samples/dotnet/maf-procurement-harness/backend/**/obj/
