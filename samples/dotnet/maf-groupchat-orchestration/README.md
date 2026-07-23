@@ -1,23 +1,43 @@
 # MAF Group Chat Orchestration (OnboardRoom)
 
-A console-first sample for **Agent Orchestration Patterns - Part 4**. It demonstrates a chair-led group chat using Microsoft Agent Framework workflows, Microsoft Foundry agents through `AIProjectClient`, and Foundry Toolbox over MCP.
+A full-stack reference sample for **Agent Orchestration Patterns - Part 4**. OnboardRoom combines a React operations UI, an ASP.NET Core API, SignalR streaming, SQLite persistence, and a chair-led Microsoft Agent Framework Group Chat backed by Microsoft Foundry agents and Foundry Toolbox over MCP.
+
+> **Blog post:** [Group Chat Orchestration: Building a Moderated Boardroom with Microsoft Agent Framework](https://arafattehsin.com/blog/agent-orchestration-patterns-part-4/)
 
 ## What It Builds
 
 ```text
-User onboarding request
+React operations UI
+        |
+        | HTTP + SignalR
+        v
+ASP.NET Core API
+        |
+        +--> SQLite run history, step snapshots, reruns, and lineage
         |
         v
-ChairLedGroupChatManager
+RunOrchestrator
         |
-        +--> OnboardRoom_Intake
-        +--> OnboardRoom_Benefits   -- Foundry Toolbox MCP tools
-        +--> OnboardRoom_Access     -- Foundry Toolbox MCP tools
-        +--> OnboardRoom_Policy     -- Foundry Toolbox MCP tools
-        +--> OnboardRoom_Chair
+        +--> 1. Intake normalization and PII redaction
+        +--> 2. Applicant profile extraction
+        +--> 3. Boardroom review
+        |        |
+        |        v
+        |    ChairLedGroupChatManager
+        |        |
+        |        +--> OnboardRoom_Intake
+        |        +--> OnboardRoom_Benefits   -- Foundry Toolbox MCP tools
+        |        +--> OnboardRoom_Access     -- Foundry Toolbox MCP tools
+        |        +--> OnboardRoom_Policy     -- Foundry Toolbox MCP tools
+        |        +--> OnboardRoom_Chair
+        +--> 4. Chair recommendation
+        +--> 5. Customer next steps
+        +--> 6. HTML export package
 ```
 
-The console app creates short-lived hosted Foundry agent versions for the run, wraps them as `FoundryAgent` instances, connects to a Foundry Toolbox MCP endpoint, and streams the group chat output in the terminal.
+The primary experience is the API and web UI: submit an onboarding request, watch workflow and speaker events stream live, inspect every step, review the Chair's recommendation, rerun from a selected step, and export the final package.
+
+The repository also includes a console runner for exercising the Group Chat directly. It connects to the same Foundry Toolbox MCP boundary, creates short-lived Foundry agent versions, streams the discussion in the terminal, and can optionally create a sample toolbox version.
 
 ## Prerequisites
 
@@ -59,32 +79,6 @@ npm audit --audit-level=high
 
 ## Run
 
-### Console
-
-Build first:
-
-```powershell
-dotnet build .\backend\OnboardRoom.slnx
-```
-
-Run against an existing toolbox:
-
-```powershell
-dotnet run --project .\backend\OnboardRoom.Console\OnboardRoom.Console.csproj
-```
-
-Create a sample toolbox version first, then run:
-
-```powershell
-dotnet run --project .\backend\OnboardRoom.Console\OnboardRoom.Console.csproj -- --create-toolbox
-```
-
-Override the request or manager:
-
-```powershell
-dotnet run --project .\backend\OnboardRoom.Console\OnboardRoom.Console.csproj -- --manager roundrobin --max-rounds 6 --request "Onboard a new Sydney-based finance analyst with SAP, Teams, and VPN access."
-```
-
 ### API and web UI
 
 Start the API from the sample directory:
@@ -102,6 +96,26 @@ npm run dev
 ```
 
 Open `http://localhost:5173`. To use a different API URL, set `VITE_API_BASE_URL` before starting Vite.
+
+### Console runner
+
+Run the focused Group Chat against an existing toolbox:
+
+```powershell
+dotnet run --project .\backend\OnboardRoom.Console\OnboardRoom.Console.csproj
+```
+
+Create a sample toolbox version first, then run:
+
+```powershell
+dotnet run --project .\backend\OnboardRoom.Console\OnboardRoom.Console.csproj -- --create-toolbox
+```
+
+Override the request or manager:
+
+```powershell
+dotnet run --project .\backend\OnboardRoom.Console\OnboardRoom.Console.csproj -- --manager roundrobin --max-rounds 6 --request "Onboard a new Sydney-based finance analyst with SAP, Teams, and VPN access."
+```
 
 ## Notes
 
