@@ -41,13 +41,10 @@ builder.Services.AddDbContext<OnboardRoomDbContext>(options =>
 
 FoundryOptions foundryOptions = builder.Configuration.GetSection("Foundry").Get<FoundryOptions>() ?? new FoundryOptions();
 foundryOptions.ProjectEndpoint = FirstConfigured(
+    builder.Configuration["MICROSOFT_FOUNDRY_PROJECT_ENDPOINT"],
     builder.Configuration["FOUNDRY_PROJECT_ENDPOINT"],
     builder.Configuration["AZURE_AI_PROJECT_ENDPOINT"],
     foundryOptions.ProjectEndpoint);
-foundryOptions.DeploymentName = FirstConfigured(
-    builder.Configuration["FOUNDRY_MODEL"],
-    builder.Configuration["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
-    foundryOptions.DeploymentName);
 foundryOptions.ToolboxName = FirstConfigured(builder.Configuration["FOUNDRY_TOOLBOX_NAME"], foundryOptions.ToolboxName);
 foundryOptions.ToolboxApiVersion = FirstConfigured(
     builder.Configuration["FOUNDRY_TOOLBOX_API_VERSION"],

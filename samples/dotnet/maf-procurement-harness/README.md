@@ -64,7 +64,7 @@ maf-procurement-harness/
 | Todo tracking | The agent creates and closes explicit review todos instead of relying on hidden reasoning. |
 | Plan/execute modes | The first turn plans. The host app then approves the plan by switching the session to `execute`. |
 | Controlled file access | File tools are scoped to the sample `working/` directory. |
-| Safe output writes | Read-only file tools are auto-approved; `file_access_save_file` is auto-approved only under `output/`. |
+| Safe output writes | Read-only file tools are auto-approved; `file_access_write` is auto-approved only under `output/`. |
 | File-backed memory | The agent can persist run notes under `.agent-memory/`. |
 | Bounded execution loop | `TodoCompletionLoopEvaluator` can re-invoke the agent while execute-mode todos remain open. |
 
@@ -74,39 +74,40 @@ maf-procurement-harness/
 - Azure CLI login with access to a Microsoft Foundry project
 - A deployed model in that project
 
+Authenticate locally with `az login`. The console uses `AzureCliCredential` for local development; production hosts should use a specific credential such as managed identity.
+
 The sample restores Microsoft Agent Framework packages from NuGet, including:
 
 - `Microsoft.Agents.AI.Foundry`
 - `Microsoft.Agents.AI.Harness`
 - `Azure.Identity`
 
+`Microsoft.Agents.AI.Foundry` is currently a prerelease package. The pinned project reference restores it automatically; use `--prerelease` if you add it to another project yourself.
+
 ## Configuration
 
-Set your Foundry project endpoint and model deployment:
+Set your Microsoft Foundry project endpoint:
 
 ```powershell
-$env:FOUNDRY_PROJECT_ENDPOINT = "https://<your-project>.services.ai.azure.com/api/projects/<your-project-name>"
-$env:FOUNDRY_MODEL = "<your-model-deployment-name>"
+$env:MICROSOFT_FOUNDRY_PROJECT_ENDPOINT = "https://<your-project>.services.ai.azure.com/api/projects/<your-project-name>"
 ```
 
-The sample also accepts these environment variable aliases:
+The sample always uses the `gpt-5.4` model deployment. `FOUNDRY_PROJECT_ENDPOINT` and `AZURE_AI_PROJECT_ENDPOINT` remain supported as endpoint aliases.
 
-| Setting | Purpose |
-| --- | --- |
-| `FOUNDRY_PROJECT_ENDPOINT` or `AZURE_AI_PROJECT_ENDPOINT` | Microsoft Foundry project endpoint |
-| `FOUNDRY_MODEL` or `AZURE_AI_MODEL_DEPLOYMENT_NAME` | Foundry model deployment name |
-
-You can also pass the endpoint and deployment as command-line options:
+You can also pass the endpoint as a command-line option:
 
 ```powershell
-dotnet run --project .\backend\ProcurementHarness.Console\ProcurementHarness.Console.csproj -- --endpoint "https://<project>.services.ai.azure.com/api/projects/<project-name>" --deployment "<deployment-name>"
+dotnet run --project .\backend\ProcurementHarness.Console\ProcurementHarness.Console.csproj -- --endpoint "https://<project>.services.ai.azure.com/api/projects/<project-name>"
 ```
 
 ## Validate Without Calling a Model
 
 ```powershell
 cd C:\Users\AT\source\repos\generative-ai\samples\dotnet\maf-procurement-harness
+dotnet restore .\backend\ProcurementHarness.sln
+dotnet build .\backend\ProcurementHarness.sln --configuration Release --no-restore
 dotnet run --project .\backend\ProcurementHarness.Console\ProcurementHarness.Console.csproj -- --check
+dotnet list .\backend\ProcurementHarness.sln package --vulnerable --include-transitive
 ```
 
 ## Run
@@ -162,3 +163,9 @@ dotnet run --project .\backend\ProcurementHarness.Console\ProcurementHarness.Con
 - The sample does not auto-approve delete operations.
 - The default run is deliberately two-phase so the host application owns the transition from planning to execution.
 - The recommendation file is required; if the run finishes without `working/output/recommendation.md`, the app returns a non-zero exit code.
+
+## References
+
+- [Microsoft Agent Framework overview](https://learn.microsoft.com/agent-framework/overview/)
+- [Agent harnesses](https://learn.microsoft.com/agent-framework/agents/harness)
+- [Microsoft Foundry provider for Agent Framework](https://learn.microsoft.com/agent-framework/agents/providers/microsoft-foundry)

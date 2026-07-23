@@ -4,9 +4,11 @@ namespace OnboardRoom.Infrastructure.Foundry;
 
 public sealed class FoundryOptions
 {
+    public const string ModelDeploymentName = "gpt-5.4";
+
     public string ProjectEndpoint { get; set; } = string.Empty;
 
-    public string DeploymentName { get; set; } = string.Empty;
+    public string DeploymentName { get; } = ModelDeploymentName;
 
     public string ToolboxName { get; set; } = "onboardroom-toolbox";
 

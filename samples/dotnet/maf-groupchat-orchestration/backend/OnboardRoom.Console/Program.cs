@@ -25,20 +25,11 @@ if (!Uri.TryCreate(options.ProjectEndpoint, UriKind.Absolute, out Uri? projectEn
     Console.ForegroundColor = ConsoleColor.Red;
     Console.Error.WriteLine("Foundry project endpoint is required.");
     Console.ResetColor();
-    Console.Error.WriteLine("Set FOUNDRY_PROJECT_ENDPOINT or pass --endpoint <project-endpoint>.");
-    return;
+    Console.Error.WriteLine("Set MICROSOFT_FOUNDRY_PROJECT_ENDPOINT or pass --endpoint <project-endpoint>.");
+    return 1;
 }
 
-if (string.IsNullOrWhiteSpace(options.DeploymentName))
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.Error.WriteLine("Foundry model deployment name is required.");
-    Console.ResetColor();
-    Console.Error.WriteLine("Set FOUNDRY_MODEL or pass --deployment <deployment-name>.");
-    return;
-}
-
-TokenCredential credential = new DefaultAzureCredential();
+TokenCredential credential = new AzureCliCredential();
 AIProjectClient projectClient = new(projectEndpoint, credential);
 
 Console.WriteLine("OnboardRoom Group Chat Console");
@@ -107,6 +98,8 @@ finally
         }
     }
 }
+
+return Environment.ExitCode;
 
 static bool TryWriteKnownFoundryAccessError(Exception exception, SampleOptions options)
 {
@@ -252,36 +245,31 @@ static async Task<string> CreateSampleToolboxAsync(string name, Uri projectEndpo
     AgentAdministrationClient adminClient = new(projectEndpoint, credential, options);
     AgentToolboxes toolboxClient = adminClient.GetAgentToolboxes();
 
-    ProjectsAgentTool webSearchTool = WithToolMetadata(
-        ProjectsAgentTool.AsProjectTool(ResponseTool.CreateWebSearchTool()),
-        name: "onboardroom_web_search",
-        description: "Searches the web for current onboarding, benefits, access, and policy information.");
-    ProjectsAgentTool microsoftLearnMcpTool = ProjectsAgentTool.AsProjectTool(ResponseTool.CreateMcpTool(
-        serverLabel: "microsoft_learn",
-        serverUri: new Uri("https://learn.microsoft.com/api/mcp"),
-        toolCallApprovalPolicy: new McpToolCallApprovalPolicy(GlobalMcpToolCallApprovalPolicy.NeverRequireApproval)));
-    ProjectsAgentTool codeInterpreterTool = WithToolMetadata(
-        ProjectsAgentTool.AsProjectTool(ResponseTool.CreateCodeInterpreterTool(
-            new CodeInterpreterToolContainer(
-                CodeInterpreterToolContainerConfiguration.CreateAutomaticContainerConfiguration([])))),
-        name: "onboardroom_code_interpreter",
-        description: "Runs small calculations or tabular checks needed during onboarding review.");
+    WebSearchToolboxTool webSearchTool = new()
+    {
+        Name = "onboardroom_web_search",
+        Description = "Searches the web for current onboarding, benefits, access, and policy information.",
+    };
+    MCPToolboxTool microsoftLearnMcpTool = new(serverLabel: "microsoft_learn")
+    {
+        Name = "onboardroom_microsoft_learn",
+        Description = "Searches current Microsoft Learn documentation.",
+        ServerUri = new Uri("https://learn.microsoft.com/api/mcp"),
+        ToolCallApprovalPolicy = new McpToolCallApprovalPolicy(GlobalMcpToolCallApprovalPolicy.NeverRequireApproval),
+    };
+    CodeInterpreterToolboxTool codeInterpreterTool = new()
+    {
+        Name = "onboardroom_code_interpreter",
+        Description = "Runs small calculations or tabular checks needed during onboarding review.",
+    };
 
-    ToolboxVersion created = (await toolboxClient.CreateToolboxVersionAsync(
+    ToolboxVersion created = await toolboxClient.CreateVersionAsync(
         name: name,
         tools: [webSearchTool, microsoftLearnMcpTool, codeInterpreterTool],
-        description: "OnboardRoom sample toolbox with web search, Microsoft Learn MCP, and code interpreter tools.")).Value;
+        description: "OnboardRoom sample toolbox with web search, Microsoft Learn MCP, and code interpreter tools.");
 
     Console.WriteLine($"Created toolbox '{created.Name}' v{created.Version} ({created.Tools.Count} tool(s)).");
     return BuildToolboxMcpEndpoint(projectEndpoint, created.Name, Defaults.ToolboxApiVersion);
-}
-
-static ProjectsAgentTool WithToolMetadata(ProjectsAgentTool tool, string name, string description)
-{
-    Type toolType = tool.GetType();
-    toolType.GetProperty("Name")?.SetValue(tool, name);
-    toolType.GetProperty("Description")?.SetValue(tool, description);
-    return tool;
 }
 
 static string BuildToolboxMcpEndpoint(Uri projectEndpoint, string toolboxName, string apiVersion)
@@ -384,40 +372,39 @@ internal sealed record SampleOptions(
         }
 
         return new SampleOptions(
-            ProjectEndpoint: GetValue(values, "endpoint", "FOUNDRY_PROJECT_ENDPOINT", "AZURE_AI_PROJECT_ENDPOINT", Defaults.ProjectEndpoint),
-            DeploymentName: GetValue(values, "deployment", "FOUNDRY_MODEL", "AZURE_AI_MODEL_DEPLOYMENT_NAME", Defaults.DeploymentName),
-            ToolboxName: GetValue(values, "toolbox", "FOUNDRY_TOOLBOX_NAME", null, Defaults.ToolboxName),
-            ToolboxApiVersion: GetValue(values, "toolbox-version", "FOUNDRY_TOOLBOX_API_VERSION", "FOUNDRY_AGENT_TOOLSET_API_VERSION", Defaults.ToolboxApiVersion),
-            Manager: GetValue(values, "manager", "ONBOARDROOM_MANAGER", null, "chair"),
-            MaxRounds: int.TryParse(GetValue(values, "max-rounds", "ONBOARDROOM_MAX_ROUNDS", null, "5"), out int maxRounds) ? maxRounds : 5,
-            Request: GetValue(values, "request", "ONBOARDROOM_REQUEST", null, Prompts.DefaultRequest),
+            ProjectEndpoint: GetValue(
+                values,
+                "endpoint",
+                Defaults.ProjectEndpoint,
+                "MICROSOFT_FOUNDRY_PROJECT_ENDPOINT",
+                "FOUNDRY_PROJECT_ENDPOINT",
+                "AZURE_AI_PROJECT_ENDPOINT"),
+            DeploymentName: Defaults.DeploymentName,
+            ToolboxName: GetValue(values, "toolbox", Defaults.ToolboxName, "FOUNDRY_TOOLBOX_NAME"),
+            ToolboxApiVersion: GetValue(values, "toolbox-version", Defaults.ToolboxApiVersion, "FOUNDRY_TOOLBOX_API_VERSION", "FOUNDRY_AGENT_TOOLSET_API_VERSION"),
+            Manager: GetValue(values, "manager", "chair", "ONBOARDROOM_MANAGER"),
+            MaxRounds: int.TryParse(GetValue(values, "max-rounds", "5", "ONBOARDROOM_MAX_ROUNDS"), out int maxRounds) ? maxRounds : 5,
+            Request: GetValue(values, "request", Prompts.DefaultRequest, "ONBOARDROOM_REQUEST"),
             CreateToolbox: switches.Contains("create-toolbox") || bool.TryParse(Environment.GetEnvironmentVariable("FOUNDRY_CREATE_TOOLBOX"), out bool createToolbox) && createToolbox);
     }
 
     private static string GetValue(
         IReadOnlyDictionary<string, string?> args,
         string argName,
-        string envName,
-        string? alternateEnvName,
-        string fallback)
+        string fallback,
+        params string[] envNames)
     {
         if (args.TryGetValue(argName, out string? argValue) && !string.IsNullOrWhiteSpace(argValue))
         {
             return argValue;
         }
 
-        string? envValue = Environment.GetEnvironmentVariable(envName);
-        if (!string.IsNullOrWhiteSpace(envValue))
+        foreach (string envName in envNames)
         {
-            return envValue;
-        }
-
-        if (!string.IsNullOrWhiteSpace(alternateEnvName))
-        {
-            string? alternateEnvValue = Environment.GetEnvironmentVariable(alternateEnvName);
-            if (!string.IsNullOrWhiteSpace(alternateEnvValue))
+            string? envValue = Environment.GetEnvironmentVariable(envName);
+            if (!string.IsNullOrWhiteSpace(envValue))
             {
-                return alternateEnvValue;
+                return envValue;
             }
         }
 
@@ -428,7 +415,7 @@ internal sealed record SampleOptions(
 internal static class Defaults
 {
     public const string ProjectEndpoint = "";
-    public const string DeploymentName = "";
+    public const string DeploymentName = "gpt-5.4";
     public const string ToolboxName = "onboardroom-toolbox";
     public const string ToolboxApiVersion = "v1";
 }
