@@ -21,7 +21,7 @@ public sealed class FoundryAgentFactory(FoundryOptions options)
     {
         if (!Uri.TryCreate(options.ProjectEndpoint, UriKind.Absolute, out Uri? projectEndpoint))
         {
-            throw new InvalidOperationException("Configure Foundry:ProjectEndpoint or FOUNDRY_PROJECT_ENDPOINT with your Microsoft Foundry project endpoint.");
+            throw new InvalidOperationException("Configure MICROSOFT_FOUNDRY_PROJECT_ENDPOINT with your Microsoft Foundry project endpoint.");
         }
 
         return new(projectEndpoint, this._credential);
@@ -29,11 +29,6 @@ public sealed class FoundryAgentFactory(FoundryOptions options)
 
     public async Task<IReadOnlyList<AIAgent>> CreateAgentsAsync(AIProjectClient projectClient, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(options.DeploymentName))
-        {
-            throw new InvalidOperationException("Configure Foundry:DeploymentName or FOUNDRY_MODEL with your model deployment name.");
-        }
-
         IList<AITool> reviewerTools = await this.CreateReviewerToolsAsync(cancellationToken);
 
         return

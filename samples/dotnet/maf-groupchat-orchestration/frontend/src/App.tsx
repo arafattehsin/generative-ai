@@ -475,7 +475,6 @@ function useRunElapsedMs(run?: RunDetail) {
   useEffect(() => {
     if (run?.status !== 'Running') return
 
-    setNow(Date.now())
     const interval = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(interval)
   }, [run?.id, run?.status])

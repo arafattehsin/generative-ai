@@ -43,7 +43,7 @@ public sealed class RunsController(
 
         if (!IsFoundryConfigured())
         {
-            return this.BadRequest("Configure Foundry:ProjectEndpoint/FOUNDRY_PROJECT_ENDPOINT and Foundry:DeploymentName/FOUNDRY_MODEL before starting a run.");
+            return this.BadRequest("Configure MICROSOFT_FOUNDRY_PROJECT_ENDPOINT before starting a run.");
         }
 
         WorkflowRun run = await orchestrator.CreateRunAsync(request, cancellationToken);
@@ -71,7 +71,7 @@ public sealed class RunsController(
 
         if (!IsFoundryConfigured())
         {
-            return this.BadRequest("Configure Foundry:ProjectEndpoint/FOUNDRY_PROJECT_ENDPOINT and Foundry:DeploymentName/FOUNDRY_MODEL before rerunning.");
+            return this.BadRequest("Configure MICROSOFT_FOUNDRY_PROJECT_ENDPOINT before rerunning.");
         }
 
         WorkflowRun rerun = await orchestrator.RerunFromStepAsync(id, request.FromStep, cancellationToken);

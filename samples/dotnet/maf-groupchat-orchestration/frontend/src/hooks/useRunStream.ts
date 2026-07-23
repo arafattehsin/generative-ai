@@ -6,15 +6,11 @@ import type { WorkflowEvent } from '../lib/types'
 const EVENT_NAMES = ['stepStarted', 'stepCompleted', 'stepFailed', 'groupChatMessageReceived', 'groupChatCompleted']
 
 export function useRunStream(runId?: string | null) {
-  const [events, setEvents] = useState<WorkflowEvent[]>([])
+  const [stream, setStream] = useState<{ runId: string; events: WorkflowEvent[] } | null>(null)
 
   useEffect(() => {
-    if (!runId) {
-      setEvents([])
-      return
-    }
+    if (!runId) return
 
-    setEvents([])
     let disposed = false
     let joined = false
     const connection = new HubConnectionBuilder()
@@ -26,7 +22,10 @@ export function useRunStream(runId?: string | null) {
     EVENT_NAMES.forEach((eventName) => {
       connection.on(eventName, (event: WorkflowEvent) => {
         if (!disposed && event.runId === runId) {
-          setEvents((current) => [event, ...current].slice(0, 60))
+          setStream((current) => {
+            const currentEvents = current?.runId === runId ? current.events : []
+            return { runId, events: [event, ...currentEvents].slice(0, 60) }
+          })
         }
       })
     })
@@ -62,5 +61,6 @@ export function useRunStream(runId?: string | null) {
     }
   }, [runId])
 
-  return events
+  if (!stream || stream.runId !== runId) return []
+  return stream.events
 }

@@ -54,15 +54,12 @@ if (options.CheckOnly)
 
 string endpoint = FirstNonEmpty(
         options.Endpoint,
+        Environment.GetEnvironmentVariable("MICROSOFT_FOUNDRY_PROJECT_ENDPOINT"),
         Environment.GetEnvironmentVariable("FOUNDRY_PROJECT_ENDPOINT"),
         Environment.GetEnvironmentVariable("AZURE_AI_PROJECT_ENDPOINT"))
-    ?? throw new InvalidOperationException("Set FOUNDRY_PROJECT_ENDPOINT or AZURE_AI_PROJECT_ENDPOINT, or pass --endpoint <project-endpoint>.");
+    ?? throw new InvalidOperationException("Set MICROSOFT_FOUNDRY_PROJECT_ENDPOINT or pass --endpoint <project-endpoint>.");
 
-string deploymentName = FirstNonEmpty(
-        options.DeploymentName,
-        Environment.GetEnvironmentVariable("FOUNDRY_MODEL"),
-        Environment.GetEnvironmentVariable("AZURE_AI_MODEL_DEPLOYMENT_NAME"))
-    ?? "gpt-5-mini";
+const string deploymentName = SampleText.ModelDeploymentName;
 
 Console.WriteLine("Procurement Quote Review Harness");
 Console.WriteLine($"Foundry project: {endpoint}");
@@ -71,21 +68,22 @@ Console.WriteLine($"Workspace: {workingDirectory}");
 Console.WriteLine($"Output write approval: {(options.StrictApprovals ? "strict/manual" : "auto-approve output/* saves")}");
 Console.WriteLine();
 
-// DefaultAzureCredential is convenient for samples. For production, use the narrowest
-// credential that matches your hosting environment, such as ManagedIdentityCredential.
+// AzureCliCredential matches this local console sample's documented `az login` workflow.
+// For production, use the narrowest credential that matches the hosting environment,
+// such as ManagedIdentityCredential.
 AIProjectClient projectClient = new(
     new Uri(endpoint),
-    new DefaultAzureCredential(),
+    new AzureCliCredential(),
     new AIProjectClientOptions { RetryPolicy = new ClientRetryPolicy(3) });
 
 IChatClient chatClient = projectClient
     .GetProjectOpenAIClient()
-    .GetResponsesClient()
+    .GetProjectResponsesClient()
     .AsIChatClient(deploymentName);
 
-Func<FunctionCallContent, ValueTask<bool>>[] approvalRules = options.StrictApprovals
+Func<ToolAutoApprovalRuleContext, ValueTask<bool>>[] approvalRules = options.StrictApprovals
     ? [FileAccessProvider.ReadOnlyToolsAutoApprovalRule]
-    : [FileAccessProvider.ReadOnlyToolsAutoApprovalRule, OutputOnlySaveAutoApprovalRule];
+    : [FileAccessProvider.ReadOnlyToolsAutoApprovalRule, OutputOnlyWriteAutoApprovalRule];
 
 AIAgent agent = chatClient.AsHarnessAgent(new HarnessAgentOptions
 {
@@ -140,8 +138,8 @@ if (!approvalRequested)
         ?? throw new InvalidOperationException("Agent mode provider is not available.");
 
     Console.WriteLine();
-    Console.WriteLine($"Mode after planning: {modeProvider.GetMode(session)}");
-    modeProvider.SetMode(session, "execute");
+    Console.WriteLine($"Mode after planning: {await modeProvider.GetModeAsync(session)}");
+    await modeProvider.SetModeAsync(session, "execute");
     Console.WriteLine("Host approval granted. Mode set to execute.");
     approvalRequested = await RunAgentTurnAsync(agent, session, SampleText.ExecuteApprovalPrompt, "Execution turn");
 }
@@ -193,9 +191,10 @@ static async Task<bool> RunAgentTurnAsync(AIAgent agent, AgentSession session, s
     return approvalRequested;
 }
 
-static ValueTask<bool> OutputOnlySaveAutoApprovalRule(FunctionCallContent functionCall)
+static ValueTask<bool> OutputOnlyWriteAutoApprovalRule(ToolAutoApprovalRuleContext context)
 {
-    if (!string.Equals(functionCall.Name, FileAccessProvider.SaveFileToolName, StringComparison.Ordinal))
+    FunctionCallContent functionCall = context.FunctionCallContent;
+    if (!string.Equals(functionCall.Name, FileAccessProvider.WriteToolName, StringComparison.Ordinal))
     {
         return ValueTask.FromResult(false);
     }
@@ -266,18 +265,14 @@ static void PrintConfigurationSummary(SampleOptions options)
 {
     string? endpoint = FirstNonEmpty(
         options.Endpoint,
+        Environment.GetEnvironmentVariable("MICROSOFT_FOUNDRY_PROJECT_ENDPOINT"),
         Environment.GetEnvironmentVariable("FOUNDRY_PROJECT_ENDPOINT"),
         Environment.GetEnvironmentVariable("AZURE_AI_PROJECT_ENDPOINT"));
-
-    string? deployment = FirstNonEmpty(
-        options.DeploymentName,
-        Environment.GetEnvironmentVariable("FOUNDRY_MODEL"),
-        Environment.GetEnvironmentVariable("AZURE_AI_MODEL_DEPLOYMENT_NAME"));
 
     Console.WriteLine();
     Console.WriteLine("Foundry configuration:");
     Console.WriteLine($"  Endpoint: {(endpoint is null ? "not set" : "set")}");
-    Console.WriteLine($"  Deployment: {deployment ?? "gpt-5-mini (default)"}");
+    Console.WriteLine($"  Deployment: {SampleText.ModelDeploymentName} (fixed)");
     Console.WriteLine();
     Console.WriteLine("Run:");
     Console.WriteLine("  dotnet run --project .\\backend\\ProcurementHarness.Console\\ProcurementHarness.Console.csproj");
@@ -333,7 +328,6 @@ static void PrintHelp()
         Options:
           --check                    Validate the seeded workspace without calling a model.
           --endpoint <url>            Microsoft Foundry project endpoint.
-          --deployment <name>         Foundry model deployment name. Defaults to gpt-5-mini.
           --working-dir <path>        Override the file-access working directory.
           --prompt <text>             Override the default procurement review prompt.
           --plan-only                 Stop after the planning turn.
@@ -353,7 +347,6 @@ internal sealed record SampleOptions(
     bool PlanOnly,
     bool StrictApprovals,
     string? Endpoint,
-    string? DeploymentName,
     string? WorkingDirectory,
     string? Prompt,
     int MaxContextWindowTokens = 1_050_000,
@@ -368,7 +361,6 @@ internal sealed record SampleOptions(
         bool planOnly = false;
         bool strictApprovals = false;
         string? endpoint = null;
-        string? deployment = null;
         string? workingDirectory = null;
         string? prompt = null;
 
@@ -393,9 +385,6 @@ internal sealed record SampleOptions(
                 case "--endpoint":
                     endpoint = ReadValue(args, ref index, arg);
                     break;
-                case "--deployment":
-                    deployment = ReadValue(args, ref index, arg);
-                    break;
                 case "--working-dir":
                     workingDirectory = ReadValue(args, ref index, arg);
                     break;
@@ -413,7 +402,6 @@ internal sealed record SampleOptions(
             planOnly,
             strictApprovals,
             endpoint,
-            deployment,
             workingDirectory,
             prompt);
     }
@@ -431,6 +419,8 @@ internal sealed record SampleOptions(
 
 internal static class SampleText
 {
+    public const string ModelDeploymentName = "gpt-5.4";
+
     public const string DefaultPrompt =
         """
         Review the procurement workspace and recommend one vendor for the managed laptop refresh.
