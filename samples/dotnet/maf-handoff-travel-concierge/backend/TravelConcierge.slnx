@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TravelConcierge.Api.Tests/TravelConcierge.Api.Tests.csproj" />
+  <Project Path="TravelConcierge.Api/TravelConcierge.Api.csproj" />
+</Solution>
