@@ -1,0 +1,9 @@
+backend/**/bin/
+backend/**/obj/
+frontend/dist/
+frontend/node_modules/
+frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/node_modules/.tmp/
+output/
+*.log
