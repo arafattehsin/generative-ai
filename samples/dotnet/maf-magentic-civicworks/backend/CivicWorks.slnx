@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CivicWorks.Api/CivicWorks.Api.csproj" />
+  <Project Path="CivicWorks.Api.Tests/CivicWorks.Api.Tests.csproj" />
+</Solution>

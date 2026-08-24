@@ -1,0 +1,967 @@
+import {
+  IconAccessible,
+  IconAlertTriangle,
+  IconArrowRight,
+  IconBarrierBlock,
+  IconBuildingCommunity,
+  IconBusStop,
+  IconCheck,
+  IconClock,
+  IconFileDescription,
+  IconMapPin,
+  IconPlayerTrackNext,
+  IconRefresh,
+  IconShieldCheck,
+  IconTree,
+} from '@tabler/icons-react'
+import { useMemo, useState } from 'react'
+import type {
+  ApiRunPhase,
+  EvidenceItem as ApiEvidenceItem,
+  ExecutionBudget as ApiExecutionBudget,
+  FoundryConfiguration,
+  PreliminaryWorksOptionsBrief,
+} from './api'
+import { useLiveCivicWorks } from './useLiveCivicWorks'
+
+type EvidenceStatus = 'verified' | 'conflict' | 'queued' | 'checking'
+type PlanMode = 'compare' | 'current'
+type WorkflowPhase = 'initial-review' | 'revised-review' | 'approved'
+
+type EvidenceItem = Omit<ApiEvidenceItem, 'status'> & {
+  status: EvidenceStatus
+}
+
+const statusLabels: Record<EvidenceStatus, string> = {
+  verified: 'Verified',
+  conflict: 'Conflict',
+  queued: 'Queued',
+  checking: 'Checking',
+}
+
+export default function App() {
+  const { configuration, run, busy, error, start, review } = useLiveCivicWorks()
+  const [planMode, setPlanMode] = useState<PlanMode>('compare')
+  const [selectedEvidenceId, setSelectedEvidenceId] = useState('')
+  const [showBrief, setShowBrief] = useState(false)
+
+  const evidenceItems = useMemo<EvidenceItem[]>(
+    () =>
+      (run?.evidence ?? []).map((item) => ({
+        ...item,
+        status: item.status.toLowerCase() as EvidenceStatus,
+      })),
+    [run?.evidence],
+  )
+
+  const phase: WorkflowPhase =
+    run?.phase === 'Completed'
+      ? 'approved'
+      : (run?.planVersion ?? 0) > 1 || run?.phase === 'RevisedReview'
+        ? 'revised-review'
+        : 'initial-review'
+
+  const effectiveSelectedEvidenceId =
+    selectedEvidenceId || run?.focusEvidenceId || evidenceItems[0]?.id || ''
+
+  const selectedEvidence =
+    evidenceItems.find((item) => item.id === effectiveSelectedEvidenceId) ??
+    ({
+      id: 'pending',
+      sequence: 0,
+      reference: 'No evidence yet',
+      title: 'Start the live investigation',
+      source: 'Microsoft Foundry has not been called for this run.',
+      detail:
+        'CivicWorks will show evidence here only after a live specialist retrieves it through an attached read-only tool.',
+      status: 'queued',
+      updated: 'Waiting to start',
+      specialist: 'No active specialist',
+      activity: 'No scripted evidence is displayed',
+    } satisfies EvidenceItem)
+
+  const selectEvidence = (id: string) => {
+    setSelectedEvidenceId(id)
+    setShowBrief(false)
+  }
+
+  const approvePlan = async () => {
+    await review({
+      action: 'approve',
+      constraints: [
+        'Keep all evidence read-only',
+        'Do not assume heritage significance',
+        'Preserve business and accessible access',
+      ],
+    })
+    if (phase === 'revised-review') setPlanMode('current')
+  }
+
+  const startInvestigation = async () => {
+    setShowBrief(false)
+    setPlanMode('current')
+    setSelectedEvidenceId('')
+    await start()
+  }
+
+  const terminal =
+    run?.phase === 'Completed' ||
+    run?.phase === 'Failed' ||
+    run?.phase === 'BoundedIncomplete'
+
+  return (
+    <div className="app-shell">
+      <header className="sign-bar">
+        <div className="brand-lockup">
+          <RouteMark />
+          <div>
+            <strong>CivicWorks</strong>
+            <span>Neighbourhood investigation support</span>
+          </div>
+        </div>
+
+        <div className="case-heading">
+          <span>CW-2047</span>
+          <strong>Marrin Precinct</strong>
+        </div>
+
+        <div className="header-actions">
+          <div className="support-notice">
+            <IconShieldCheck size={18} aria-hidden="true" />
+            <span>
+              Decision support
+              <strong>Officer review required</strong>
+            </span>
+          </div>
+          <button
+            className="reset-button"
+            onClick={startInvestigation}
+            disabled={busy || (!!run && !terminal)}
+          >
+            <IconRefresh size={17} aria-hidden="true" />
+            {!run
+              ? 'Start live investigation'
+              : terminal
+                ? 'Start new live run'
+                : 'Live run active'}
+          </button>
+        </div>
+      </header>
+
+      <div className="workspace">
+        <CasePanel />
+
+        <main className="route-workspace">
+          <section className="route-intro">
+            <div>
+              {!run ? (
+                <>
+                  <h1>Start the live investigation.</h1>
+                  <p>
+                    No workflow has run yet. CivicWorks will call Microsoft
+                    Foundry and wait for a real Magentic plan review.
+                  </p>
+                </>
+              ) : run.phase === 'Starting' || run.phase === 'Planning' ? (
+                <>
+                  <h1>The manager is building the first route.</h1>
+                  <p>{run.statusMessage}</p>
+                </>
+              ) : phase === 'initial-review' ? (
+                <>
+                  <h1>Review the first investigation route.</h1>
+                  <p>
+                    Plan 01 was generated by the live Magentic manager. No
+                    evidence tools will run until the officer approves its
+                    scope and constraints.
+                  </p>
+                </>
+              ) : run.phase === 'Running' && run.planVersion < 2 ? (
+                <>
+                  <h1>The live investigation is following Plan 01.</h1>
+                  <p>{run.statusMessage}</p>
+                </>
+              ) : (
+                <>
+                  <h1>Sandstone evidence changed the route.</h1>
+                  <p>
+                    Plan 02 adds heritage verification, a site survey, and a
+                    non-invasive option before costs can be recalculated.
+                  </p>
+                </>
+              )}
+            </div>
+            {(run?.planVersion ?? 0) < 2 ? (
+              <div className="initial-plan-label">
+                {!run
+                  ? 'Not started'
+                  : run.phase === 'InitialReview'
+                    ? 'Plan 01 · live review'
+                    : 'Plan 01 · live'}
+              </div>
+            ) : (
+              <div className="plan-switch" aria-label="Plan display">
+                <button
+                  className={planMode === 'compare' ? 'active' : ''}
+                  onClick={() => setPlanMode('compare')}
+                  aria-pressed={planMode === 'compare'}
+                >
+                  Compare plans
+                </button>
+                <button
+                  className={planMode === 'current' ? 'active' : ''}
+                  onClick={() => setPlanMode('current')}
+                  aria-pressed={planMode === 'current'}
+                >
+                  Current route
+                </button>
+              </div>
+            )}
+          </section>
+
+          <RouteMap
+            mode={planMode}
+            phase={phase}
+            evidenceItems={evidenceItems}
+            selectedEvidenceId={effectiveSelectedEvidenceId}
+            onSelectEvidence={selectEvidence}
+          />
+
+          {showBrief ? (
+            <OptionsBrief
+              brief={run?.brief ?? null}
+              onInspectEvidence={() => setShowBrief(false)}
+            />
+          ) : (
+            <EvidenceLedger
+              selected={selectedEvidence}
+              evidenceItems={evidenceItems}
+              onSelect={setSelectedEvidenceId}
+            />
+          )}
+        </main>
+
+        <CheckpointPanel
+          phase={phase}
+          runPhase={run?.phase ?? null}
+          statusMessage={run?.statusMessage ?? null}
+          error={error}
+          configuration={configuration}
+          busy={busy}
+          budget={run?.budget ?? null}
+          showBrief={showBrief}
+          onStart={startInvestigation}
+          onApprove={approvePlan}
+          onShowBrief={() => setShowBrief(true)}
+        />
+      </div>
+    </div>
+  )
+}
+
+function RouteMark() {
+  return (
+    <div className="route-mark" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </div>
+  )
+}
+
+function CasePanel() {
+  return (
+    <aside className="case-panel" aria-label="Case context">
+      <div className="case-number">
+        <span>CASE</span>
+        <strong>CW</strong>
+        <b>2047</b>
+      </div>
+
+      <div className="case-location">
+        <IconMapPin size={21} aria-hidden="true" />
+        <div>
+          <strong>Marrin Precinct</strong>
+          <span>Fictional NSW council</span>
+        </div>
+      </div>
+
+      <section className="case-section">
+        <h2>Investigation area</h2>
+        <ul className="landmark-list">
+          <li>
+            <IconBuildingCommunity size={18} aria-hidden="true" />
+            Marrin Library
+          </li>
+          <li>
+            <IconAccessible size={18} aria-hidden="true" />
+            Community centre
+          </li>
+          <li>
+            <IconBusStop size={18} aria-hidden="true" />
+            Bus stop 214
+          </li>
+        </ul>
+      </section>
+
+      <section className="case-section">
+        <h2>Known constraints</h2>
+        <ul className="constraint-list">
+          <li>
+            <IconTree size={17} aria-hidden="true" />
+            Street-tree protection
+          </li>
+          <li>
+            <IconBarrierBlock size={17} aria-hidden="true" />
+            Business access
+          </li>
+          <li>
+            <IconAccessible size={17} aria-hidden="true" />
+            Continuous accessible path
+          </li>
+        </ul>
+      </section>
+
+      <div className="human-owner">
+        <span>Human owner</span>
+        <div className="owner-row">
+          <b>SN</b>
+          <div>
+            <strong>Sarah Nguyen</strong>
+            <span>Place Projects Officer</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+function RouteMap({
+  mode,
+  phase,
+  evidenceItems,
+  selectedEvidenceId,
+  onSelectEvidence,
+}: {
+  mode: PlanMode
+  phase: WorkflowPhase
+  evidenceItems: EvidenceItem[]
+  selectedEvidenceId: string
+  onSelectEvidence: (id: string) => void
+}) {
+  const isInitialReview = phase === 'initial-review'
+  const evidenceById = new Map(evidenceItems.map((item) => [item.id, item]))
+  const hasEvidence = (id: string) => evidenceById.has(id)
+  const mobileStops = isInitialReview
+    ? [
+        ['Case opened', 'scope ready'],
+        ['Service requests', 'planned'],
+        ['Access inspection', 'planned'],
+        ['Asset register', 'planned'],
+        ['Site observation', 'planned'],
+        ['Draft options', 'checkpoint'],
+      ]
+    : [
+        ['Case opened', 'complete'],
+        ['Access + asset evidence', 'complete'],
+        ['Sandstone conflict', 'changed plan'],
+        ['Heritage check', 'queued'],
+        ['Site survey', 'queued'],
+        ['Non-invasive option', 'queued'],
+        ['Cost + verification', 'checkpoint'],
+      ]
+
+  return (
+    <section
+      className={`route-map phase-${phase} ${mode === 'current' ? 'is-current-only' : ''}`}
+      aria-label="Investigation route"
+    >
+      <div className="route-map-header">
+        <div className="route-legend">
+          <span className="legend-current">Current plan</span>
+          {!isInitialReview ? (
+            <span className="legend-previous">Superseded path</span>
+          ) : null}
+          <span className="legend-checkpoint">Officer checkpoint</span>
+        </div>
+        <div className="route-status">
+          <IconPlayerTrackNext size={18} aria-hidden="true" />
+          {isInitialReview
+            ? 'Plan 01 · awaiting approval'
+            : 'Plan revised · awaiting approval'}
+        </div>
+      </div>
+
+      <div className="route-field">
+        <svg
+          className="route-lines"
+          viewBox="0 0 1000 420"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path className="route-base" d="M80 90 H620" />
+          <path className="route-superseded" d="M620 90 H870" />
+          <path
+            className="route-revised-outline"
+            d="M620 90 C620 172 520 184 470 290 H920"
+          />
+          <path
+            className="route-revised"
+            d="M620 90 C620 172 520 184 470 290 H920"
+          />
+        </svg>
+
+        <RouteNode
+          className="node-case"
+          label="Case opened"
+          detail={hasEvidence('complaints') ? 'Scope confirmed' : 'Awaiting live run'}
+          state={hasEvidence('complaints') ? 'done' : 'queued'}
+          onClick={() => onSelectEvidence('complaints')}
+          selected={selectedEvidenceId === 'complaints'}
+        />
+        <RouteNode
+          className="node-access"
+          label="Access evidence"
+          detail={hasEvidence('access') ? 'Audit verified' : 'Planned check'}
+          state={hasEvidence('access') ? 'done' : 'queued'}
+          onClick={() => onSelectEvidence('access')}
+          selected={selectedEvidenceId === 'access'}
+        />
+        <RouteNode
+          className="node-assets"
+          label="Asset record"
+          detail={hasEvidence('asset') ? 'Alignment needs comparison' : 'Planned check'}
+          state={hasEvidence('asset') ? 'alert' : 'queued'}
+          onClick={() => onSelectEvidence('asset')}
+          selected={selectedEvidenceId === 'asset'}
+        />
+        <RouteNode
+          className="node-conflict"
+          label={hasEvidence('sandstone') ? 'Sandstone conflict' : 'Site observation'}
+          detail={hasEvidence('sandstone') ? 'OBS-07 changed plan' : 'Planned evidence check'}
+          state={hasEvidence('sandstone') ? 'conflict' : 'queued'}
+          onClick={() =>
+            onSelectEvidence(hasEvidence('sandstone') ? 'sandstone' : 'asset')
+          }
+          selected={
+            hasEvidence('sandstone')
+              ? selectedEvidenceId === 'sandstone'
+              : selectedEvidenceId === 'asset'
+          }
+        />
+        <RouteNode
+          className={`node-direct ${isInitialReview ? '' : 'superseded'}`}
+          label={isInitialReview ? 'Draft works options' : 'Direct works option'}
+          detail={isInitialReview ? 'After evidence' : 'Withdrawn'}
+          state={isInitialReview ? 'checkpoint' : 'superseded'}
+          onClick={() => onSelectEvidence('asset')}
+          selected={false}
+        />
+        <RouteNode
+          className="node-heritage"
+          label="Heritage check"
+          detail={hasEvidence('heritage') ? 'Register checked' : 'Queued'}
+          state={hasEvidence('heritage') ? 'done' : 'queued'}
+          onClick={() => onSelectEvidence('heritage')}
+          selected={selectedEvidenceId === 'heritage'}
+        />
+        <RouteNode
+          className="node-survey"
+          label="Site survey"
+          detail={hasEvidence('survey') ? 'Method verified' : 'Non-invasive'}
+          state={hasEvidence('survey') ? 'done' : 'queued'}
+          onClick={() => onSelectEvidence('heritage')}
+          selected={false}
+        />
+        <RouteNode
+          className="node-option"
+          label="Option design"
+          detail={hasEvidence('cost') ? '3 options compared' : 'Avoid excavation'}
+          state={hasEvidence('cost') ? 'done' : 'queued'}
+          onClick={() => onSelectEvidence('heritage')}
+          selected={false}
+        />
+        <RouteNode
+          className="node-cost"
+          label="Cost + verify"
+          detail={hasEvidence('verification') ? 'Challenge complete' : 'Recalculate'}
+          state={hasEvidence('verification') ? 'done' : 'checkpoint'}
+          onClick={() => onSelectEvidence('heritage')}
+          selected={false}
+        />
+
+        <div className="route-revision-label">
+          <span>ROUTE REVISION</span>
+          <strong>5 checks added</strong>
+          <small>Triggered by OBS-07</small>
+        </div>
+      </div>
+
+      <div className="mobile-route">
+        {mobileStops.map(([label, state], index) => (
+          <div key={label}>
+            <div className="mobile-route-stop">
+              <span>{index + 1}</span>
+              <strong>{label}</strong>
+              <small>{state}</small>
+            </div>
+            {!isInitialReview && mode === 'compare' && index === 2 ? (
+              <div className="mobile-superseded-stop">
+                <span />
+                <strong>Direct works option</strong>
+                <small>superseded branch</small>
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function RouteNode({
+  className,
+  label,
+  detail,
+  state,
+  selected,
+  onClick,
+}: {
+  className: string
+  label: string
+  detail: string
+  state: 'done' | 'alert' | 'conflict' | 'queued' | 'superseded' | 'checkpoint'
+  selected: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      className={`route-node ${className} state-${state} ${selected ? 'selected' : ''}`}
+      onClick={onClick}
+      aria-label={`${label}: ${detail}`}
+    >
+      <span className="station-dot">
+        {state === 'done' ? <IconCheck size={15} aria-hidden="true" /> : null}
+        {state === 'conflict' || state === 'alert' ? (
+          <IconAlertTriangle size={15} aria-hidden="true" />
+        ) : null}
+      </span>
+      <strong>{label}</strong>
+      <small>{detail}</small>
+    </button>
+  )
+}
+
+function EvidenceLedger({
+  selected,
+  evidenceItems,
+  onSelect,
+}: {
+  selected: EvidenceItem
+  evidenceItems: EvidenceItem[]
+  onSelect: (id: string) => void
+}) {
+  return (
+    <section className="evidence-ledger" aria-label="Evidence register">
+      <div className="evidence-detail">
+        <div className="evidence-heading">
+          <h2>{selected.title}</h2>
+          <span className={`evidence-status ${selected.status}`}>
+            {statusLabels[selected.status]}
+          </span>
+        </div>
+        <p>{selected.detail}</p>
+        <div className="specialist-status">
+          <span
+            className={`evidence-pip ${selected.status}`}
+            aria-hidden="true"
+          />
+          <strong>{selected.specialist}</strong>
+          <span>{selected.activity}</span>
+        </div>
+        <dl>
+          <div>
+            <dt>Reference</dt>
+            <dd>{selected.reference}</dd>
+          </div>
+          <div>
+            <dt>Source</dt>
+            <dd>{selected.source}</dd>
+          </div>
+          <div>
+            <dt>State</dt>
+            <dd>{selected.updated}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="evidence-index">
+        <div>
+          <h2>Evidence register</h2>
+          <span>{evidenceItems.length} live tool items · synthetic</span>
+        </div>
+        <div className="evidence-links">
+          {evidenceItems.map((item) => (
+            <button
+              key={item.id}
+              className={item.id === selected.id ? 'active' : ''}
+              onClick={() => onSelect(item.id)}
+            >
+              <span className={`evidence-pip ${item.status}`} />
+              <span>
+                <strong>{item.reference}</strong>
+                <small>{item.title}</small>
+              </span>
+              <IconArrowRight size={16} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CheckpointPanel({
+  phase,
+  runPhase,
+  statusMessage,
+  error,
+  configuration,
+  busy,
+  budget,
+  showBrief,
+  onStart,
+  onApprove,
+  onShowBrief,
+}: {
+  phase: WorkflowPhase
+  runPhase: ApiRunPhase | null
+  statusMessage: string | null
+  error: string | null
+  configuration: FoundryConfiguration | null
+  busy: boolean
+  budget: ApiExecutionBudget | null
+  showBrief: boolean
+  onStart: () => Promise<void>
+  onApprove: () => Promise<void>
+  onShowBrief: () => void
+}) {
+  const approved = runPhase === 'Completed'
+  const isInitialReview = runPhase === 'InitialReview'
+  const isRevisedReview = runPhase === 'RevisedReview'
+  const awaitingReview = isInitialReview || isRevisedReview
+  const active =
+    runPhase === 'Starting' ||
+    runPhase === 'Planning' ||
+    runPhase === 'Running'
+  const terminalFailure =
+    runPhase === 'Failed' || runPhase === 'BoundedIncomplete'
+  const configured = configuration?.isConfigured === true
+  const planIsInitial = isInitialReview || phase === 'initial-review'
+  const planSteps = isInitialReview
+    ? [
+        'Review service requests and access impacts',
+        'Inspect the accessible route',
+        'Check the civil asset register',
+        'Compare the latest site observation',
+        'Draft preliminary works options',
+      ]
+    : [
+        'Verify the heritage register',
+        'Request a non-invasive site survey',
+        'Develop an excavation-avoiding option',
+        'Recalculate cost and disruption',
+        'Challenge the revised brief',
+      ]
+
+  const heading = approved
+    ? 'Route completed'
+    : isInitialReview
+      ? 'Approve the investigation route'
+      : isRevisedReview
+        ? 'Review the revised route'
+        : terminalFailure
+          ? runPhase === 'BoundedIncomplete'
+            ? 'Budget boundary reached'
+            : 'Live run failed'
+          : active
+            ? 'Live workflow running'
+            : 'Start the live workflow'
+
+  const description = approved
+    ? 'The live Magentic run produced a preliminary options brief for officer review.'
+    : awaitingReview
+      ? statusMessage ?? 'The live workflow is paused for an officer decision.'
+      : terminalFailure
+        ? error ?? statusMessage ?? 'The run stopped without a fallback result.'
+        : active
+          ? statusMessage ?? 'Microsoft Foundry is processing the investigation.'
+          : configured
+            ? 'Start a real Microsoft Foundry run. CivicWorks has no scripted walkthrough mode.'
+            : configuration
+              ? `Set ${configuration.missingSettings.join(', ')} before starting. No simulation fallback is available.`
+              : 'Checking the live Microsoft Foundry configuration.'
+
+  return (
+    <aside
+      className={`checkpoint-panel ${approved ? 'approved' : ''}`}
+      aria-label="Officer checkpoint"
+    >
+      <div className="checkpoint-top">
+        <div className="checkpoint-symbol" aria-hidden="true">
+          {approved ? (
+            <IconCheck size={24} />
+          ) : active ? (
+            <span>LIVE</span>
+          ) : (
+            <span>HOLD</span>
+          )}
+        </div>
+        <div>
+          <h2>{heading}</h2>
+          <p aria-live="polite">{description}</p>
+        </div>
+      </div>
+
+      <div className="checkpoint-owner">
+        <span>Decision owner</span>
+        <strong>Sarah Nguyen · Place Projects Officer</strong>
+      </div>
+
+      {(awaitingReview || approved) && (
+        <div className="revision-list">
+          <h3>{planIsInitial ? 'Plan 01 will' : 'Plan 02 adds'}</h3>
+          <ul>
+            {planSteps.map((step) => (
+              <li key={step}>
+                <IconCheck size={17} aria-hidden="true" />
+                {step}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {awaitingReview ? (
+        <fieldset className="approval-constraints">
+          <legend>Approval constraints</legend>
+          <label>
+            <input type="checkbox" defaultChecked />
+            Keep all evidence read-only
+          </label>
+          <label>
+            <input type="checkbox" defaultChecked />
+            Do not assume heritage significance
+          </label>
+          <label>
+            <input type="checkbox" defaultChecked />
+            Preserve business and accessible access
+          </label>
+        </fieldset>
+      ) : approved ? (
+        <div className="decision-record">
+          <IconFileDescription size={20} aria-hidden="true" />
+          <div>
+            <strong>Checkpoint CP-02</strong>
+            <span>Approved with 3 constraints · 10:11</span>
+          </div>
+        </div>
+      ) : null}
+
+      {(error || terminalFailure || (configuration && !configured)) && (
+        <div className="decision-record live-error" role="alert">
+          <IconAlertTriangle size={20} aria-hidden="true" />
+          <div>
+            <strong>No fallback result</strong>
+            <span>{description}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="checkpoint-actions">
+        {approved ? (
+          <button
+            className="primary-action"
+            onClick={onShowBrief}
+            disabled={showBrief}
+          >
+            {showBrief ? 'Brief is open' : 'Open options brief'}
+            <IconArrowRight size={18} aria-hidden="true" />
+          </button>
+        ) : awaitingReview ? (
+          <>
+            <button
+              className="primary-action"
+              onClick={onApprove}
+              disabled={busy}
+            >
+              {busy
+                ? 'Sending live decision…'
+                : isInitialReview
+                  ? 'Approve investigation plan'
+                  : 'Approve revised route'}
+              <IconArrowRight size={18} aria-hidden="true" />
+            </button>
+            <button className="secondary-action" disabled={busy}>
+              Keep paused
+            </button>
+          </>
+        ) : active ? (
+          <button className="primary-action" disabled>
+            Microsoft Foundry is working
+            <IconPlayerTrackNext size={18} aria-hidden="true" />
+          </button>
+        ) : (
+          <button
+            className="primary-action"
+            onClick={onStart}
+            disabled={busy || !configured}
+          >
+            {busy ? 'Starting live run…' : terminalFailure ? 'Start new live run' : 'Start live investigation'}
+            <IconArrowRight size={18} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
+      <ExecutionBudget runPhase={runPhase} budget={budget} />
+    </aside>
+  )
+}
+
+function ExecutionBudget({
+  runPhase,
+  budget,
+}: {
+  runPhase: ApiRunPhase | null
+  budget: ApiExecutionBudget | null
+}) {
+  const approved = runPhase === 'Completed'
+  const paused = runPhase === 'InitialReview' || runPhase === 'RevisedReview'
+  const rounds = budget?.roundsUsed ?? 0
+  const maxRounds = budget?.maxRounds ?? 12
+  const toolCalls = budget?.toolCallsUsed ?? 0
+  const maxToolCalls = budget?.maxToolCalls ?? 24
+  const elapsed = budget?.elapsedSeconds ?? 0
+  const maxElapsed = budget?.maxElapsedSeconds ?? 600
+  const formatTime = (seconds: number) =>
+    `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+
+  return (
+    <div className="execution-budget">
+      <div className="budget-heading">
+        <h3>Execution budget</h3>
+        <span>{approved ? 'Run complete' : paused ? 'Paused safely' : runPhase ? 'Live' : 'Not started'}</span>
+      </div>
+      <BudgetLine
+        label="Rounds"
+        value={`${rounds} / ${maxRounds}`}
+        width={`${Math.min(100, (rounds / maxRounds) * 100)}%`}
+      />
+      <BudgetLine
+        label="Tool calls"
+        value={`${toolCalls} / ${maxToolCalls}`}
+        width={`${Math.min(100, (toolCalls / maxToolCalls) * 100)}%`}
+      />
+      <BudgetLine
+        label="Elapsed"
+        value={`${formatTime(elapsed)} / ${formatTime(maxElapsed)}`}
+        width={`${Math.min(100, (elapsed / maxElapsed) * 100)}%`}
+      />
+      <div className="budget-foot">
+        <IconClock size={16} aria-hidden="true" />
+        Stall {budget?.stallsObserved ?? 0} · resets {budget?.resetsUsed ?? 0}/{budget?.maxResets ?? 1} · {Math.max(0, maxToolCalls - toolCalls)} calls remain
+      </div>
+    </div>
+  )
+}
+
+function BudgetLine({
+  label,
+  value,
+  width,
+}: {
+  label: string
+  value: string
+  width: string
+}) {
+  return (
+    <div className="budget-line">
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
+      <div className="budget-track" aria-hidden="true">
+        <span style={{ width }} />
+      </div>
+    </div>
+  )
+}
+
+function OptionsBrief({
+  brief,
+  onInspectEvidence,
+}: {
+  brief: PreliminaryWorksOptionsBrief | null
+  onInspectEvidence: () => void
+}) {
+  if (!brief) {
+    return (
+      <section className="options-brief" aria-label="Preliminary options brief">
+        <div className="brief-heading">
+          <div>
+            <h2>No live options brief is available</h2>
+            <p>
+              CivicWorks will not display a scripted substitute for missing
+              Microsoft Foundry output.
+            </p>
+          </div>
+          <button onClick={onInspectEvidence}>Inspect evidence</button>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="options-brief" aria-label="Preliminary options brief">
+      <div className="brief-heading">
+        <div>
+          <h2>Preliminary works options brief</h2>
+          <p>
+            {brief.summary} Decision support only. Engineering, heritage,
+            expenditure, and works approval remain outside this run.
+          </p>
+        </div>
+        <button onClick={onInspectEvidence}>Inspect evidence</button>
+      </div>
+
+      <div className="option-columns">
+        {brief.options.map((option) => {
+          const recommended =
+            option.code.toUpperCase() === brief.recommendation.toUpperCase()
+          return (
+            <article
+              key={option.code}
+              className={recommended ? 'recommended' : ''}
+            >
+              <span>
+                OPTION {option.code.toUpperCase()}
+                {recommended ? ' · RECOMMENDED' : ''}
+              </span>
+              <h3>{option.title}</h3>
+              <p>{option.assessment}</p>
+              <strong>{option.supportStatus}</strong>
+            </article>
+          )
+        })}
+      </div>
+
+      <div className="brief-footer">
+        <span>
+          {brief.claims.length} claims linked · {brief.openMatters.length} matters
+          unresolved
+        </span>
+        <span>Live Evidence Verifier · challenge complete</span>
+      </div>
+    </section>
+  )
+}
