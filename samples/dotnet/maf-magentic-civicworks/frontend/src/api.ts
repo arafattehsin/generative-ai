@@ -79,6 +79,27 @@ export type CivicWorksRun = {
   startedAt: string
   updatedAt: string
   error: string | null
+  activity: RunActivity[]
+  plans: InvestigationPlan[]
+}
+
+export type RunActivity = {
+  sequence: number
+  at: string
+  kind: string
+  actor: string
+  message: string
+  detail: string | null
+  evidenceId: string | null
+  planVersion: number
+}
+
+export type InvestigationPlan = {
+  version: number
+  text: string
+  createdAt: string
+  approvedAt: string | null
+  constraints: string[]
 }
 
 export type FoundryConfiguration = {
@@ -148,6 +169,7 @@ export async function connectToLiveRun(
   runId: string,
   onUpdate: (run: CivicWorksRun) => void,
   onConnectionError: (error: Error) => void,
+  onConnectionState: (state: 'connected' | 'reconnecting' | 'disconnected') => void,
 ): Promise<HubConnection> {
   const connection = new HubConnectionBuilder()
     .withUrl(`${apiBaseUrl}/hubs/civicworks`)
@@ -157,14 +179,32 @@ export async function connectToLiveRun(
 
   connection.on('runUpdated', onUpdate)
   connection.onreconnecting((error) => {
+    onConnectionState('reconnecting')
     if (error) onConnectionError(error)
   })
   connection.onclose((error) => {
+    onConnectionState('disconnected')
     if (error) onConnectionError(error)
   })
 
-  await connection.start()
-  await connection.invoke('JoinRun', runId)
-  onUpdate(await getLiveRun(runId))
-  return connection
+  connection.onreconnected(async () => {
+    try {
+      await connection.invoke('JoinRun', runId)
+      onUpdate(await getLiveRun(runId))
+      onConnectionState('connected')
+    } catch (error) {
+      onConnectionState('disconnected')
+      onConnectionError(error instanceof Error ? error : new Error('Could not rejoin the investigation.'))
+    }
+  })
+  try {
+    await connection.start()
+    await connection.invoke('JoinRun', runId)
+    onUpdate(await getLiveRun(runId))
+    onConnectionState('connected')
+    return connection
+  } catch (error) {
+    await connection.stop()
+    throw error
+  }
 }

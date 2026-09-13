@@ -65,7 +65,23 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:4177`, select **Start live investigation**, and approve each plan only after reviewing it.
+Open `http://localhost:4177`, select **Start investigation**, and approve each plan only after reviewing it.
+
+The investigation workspace shows the current stage, the manager's live plan, its
+specialist assignments, and a timestamped activity history. Read the plan, confirm
+**I have reviewed this plan and its constraints**, then select **Approve Plan 01**.
+Repeat the review when the evidence triggers a revised plan. Previous plan text
+and approval times remain available in the plan-version selector.
+
+Use **Evidence register** to search the returned records and inspect each finding.
+After completion, **Options brief** shows all three options, the recommendation,
+unresolved matters, and clickable evidence references for every structured claim.
+The activity panel can be filtered to evidence returns, with expandable assignment
+details. These are actual workflow updates; the UI does not generate agent narration.
+
+Refreshing the same browser tab reconnects to its run and restores the server's
+activity history. Only the run ID is kept in session storage. A backend restart
+clears demo runs. The 10-minute elapsed-time budget includes officer review.
 
 To use a different API origin, set `VITE_API_BASE_URL` before starting Vite.
 

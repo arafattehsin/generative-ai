@@ -111,6 +111,18 @@ public sealed class LiveMagenticRunService(
 
             CivicWorksRunSnapshot snapshot = store.Update(runId, state =>
             {
+                if (command.Action.Equals("approve", StringComparison.OrdinalIgnoreCase))
+                {
+                    int planIndex = state.Plans.FindIndex(plan => plan.Version == state.PlanVersion);
+                    if (planIndex >= 0)
+                    {
+                        state.Plans[planIndex] = state.Plans[planIndex] with
+                        {
+                            ApprovedAt = DateTimeOffset.UtcNow,
+                            Constraints = command.Constraints?.ToArray() ?? [],
+                        };
+                    }
+                }
                 state.Phase = RunPhase.Running;
                 state.StatusMessage = command.Action.Equals("revise", StringComparison.OrdinalIgnoreCase)
                     ? "The officer requested a live plan revision."

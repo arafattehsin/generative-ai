@@ -1,6 +1,4 @@
 import '@fontsource-variable/atkinson-hyperlegible-next'
-import '@fontsource/barlow-condensed/600.css'
-import '@fontsource/barlow-condensed/800.css'
 import './styles.css'
 
 import React from 'react'

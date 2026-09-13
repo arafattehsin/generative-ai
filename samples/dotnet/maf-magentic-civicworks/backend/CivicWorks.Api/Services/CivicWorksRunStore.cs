@@ -10,6 +10,9 @@ public sealed class CivicWorksRunStore
     public CivicWorksRunSnapshot Create()
     {
         CivicWorksRunState state = new();
+        state.Activity.Add(new RunActivity(
+            1, state.StartedAt, "started", "CivicWorks",
+            "Investigation opened", state.StatusMessage, null, 0));
         if (!_runs.TryAdd(state.Id, state))
         {
             throw new InvalidOperationException("Could not allocate a CivicWorks run.");
@@ -42,8 +45,59 @@ public sealed class CivicWorksRunStore
 
         lock (state.SyncRoot)
         {
+            string previousStatus = state.StatusMessage;
+            string? previousActor = state.ActiveSpecialist;
+            string? previousActivity = state.ActiveActivity;
+            int previousToolCalls = state.ToolCallsUsed;
+            int previousRounds = state.RoundsUsed;
+            RunPhase previousPhase = state.Phase;
             update(state);
             state.UpdatedAt = DateTimeOffset.UtcNow;
+
+            if (state.PlanVersion > 0 && !string.IsNullOrWhiteSpace(state.PlanText))
+            {
+                int index = state.Plans.FindIndex(plan => plan.Version == state.PlanVersion);
+                if (index < 0)
+                {
+                    state.Plans.Add(new InvestigationPlan(
+                        state.PlanVersion, state.PlanText, state.UpdatedAt, null, []));
+                }
+                else if (state.Plans[index].ApprovedAt is null)
+                {
+                    state.Plans[index] = state.Plans[index] with { Text = state.PlanText };
+                }
+            }
+
+            bool toolCalled = state.ToolCallsUsed != previousToolCalls;
+            if (state.StatusMessage != previousStatus || state.Phase != previousPhase ||
+                state.ActiveSpecialist != previousActor || state.ActiveActivity != previousActivity ||
+                toolCalled || state.RoundsUsed != previousRounds)
+            {
+                EvidenceItemSnapshot? evidence = toolCalled && state.FocusEvidenceId is not null &&
+                    (state.StatusMessage != previousStatus || state.ActiveActivity != previousActivity)
+                    ? state.Evidence.GetValueOrDefault(state.FocusEvidenceId)
+                    : null;
+                string kind = state.Phase switch
+                {
+                    RunPhase.InitialReview or RunPhase.RevisedReview => "review",
+                    RunPhase.Completed => "completed",
+                    RunPhase.Failed or RunPhase.BoundedIncomplete => "stopped",
+                    _ when evidence?.Status == EvidenceStatus.Conflict => "conflict",
+                    _ when toolCalled => "evidence",
+                    _ when state.RoundsUsed != previousRounds => "delegation",
+                    _ when state.Phase == RunPhase.Planning && state.PlanVersion > 1 => "replan",
+                    _ => "activity",
+                };
+                state.Activity.Add(new RunActivity(
+                    state.Activity[^1].Sequence + 1, state.UpdatedAt, kind,
+                    state.ActiveSpecialist ?? (kind == "review" ? "Officer checkpoint" : "CivicWorks"),
+                    evidence?.Title ?? (toolCalled ? "Read-only tool call completed" : state.StatusMessage != previousStatus || state.Phase != previousPhase
+                        ? state.StatusMessage : state.ActiveActivity ?? state.StatusMessage),
+                    evidence?.Detail ?? (toolCalled ? "The tool returned without adding a new evidence record." : state.ActiveActivity),
+                    evidence?.Id, state.PlanVersion));
+                // Keep the in-memory demo and each SignalR update bounded.
+                if (state.Activity.Count > 240) state.Activity.RemoveAt(0);
+            }
             return state.ToSnapshot();
         }
     }
@@ -80,12 +134,15 @@ internal sealed class CivicWorksRunState
     public DateTimeOffset StartedAt { get; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public string? Error { get; set; }
+    public List<RunActivity> Activity { get; } = [];
+    public List<InvestigationPlan> Plans { get; } = [];
 
     public CivicWorksRunSnapshot ToSnapshot()
     {
         int elapsed = Math.Min(
             MaximumElapsedSeconds,
-            Math.Max(0, (int)(DateTimeOffset.UtcNow - StartedAt).TotalSeconds));
+            Math.Max(0, (int)((Phase is RunPhase.Completed or RunPhase.Failed or RunPhase.BoundedIncomplete
+                ? UpdatedAt : DateTimeOffset.UtcNow) - StartedAt).TotalSeconds));
 
         return new CivicWorksRunSnapshot(
             Id,
@@ -114,6 +171,8 @@ internal sealed class CivicWorksRunState
             Brief,
             StartedAt,
             UpdatedAt,
-            Error);
+            Error,
+            Activity.ToArray(),
+            Plans.Select(plan => plan with { Constraints = plan.Constraints.ToArray() }).ToArray());
     }
 }

@@ -65,6 +65,23 @@ public sealed record PreliminaryWorksOptionsBrief(
     IReadOnlyList<EvidenceClaim> Claims,
     IReadOnlyList<string> OpenMatters);
 
+public sealed record RunActivity(
+    int Sequence,
+    DateTimeOffset At,
+    string Kind,
+    string Actor,
+    string Message,
+    string? Detail,
+    string? EvidenceId,
+    int PlanVersion);
+
+public sealed record InvestigationPlan(
+    int Version,
+    string Text,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ApprovedAt,
+    IReadOnlyList<string> Constraints);
+
 public sealed record CivicWorksRunSnapshot(
     Guid Id,
     string CaseId,
@@ -82,7 +99,9 @@ public sealed record CivicWorksRunSnapshot(
     PreliminaryWorksOptionsBrief? Brief,
     DateTimeOffset StartedAt,
     DateTimeOffset UpdatedAt,
-    string? Error);
+    string? Error,
+    IReadOnlyList<RunActivity> Activity,
+    IReadOnlyList<InvestigationPlan> Plans);
 
 public sealed record PlanReviewCommand(
     string Action,
