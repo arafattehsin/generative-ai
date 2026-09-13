@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-24T15:35:32.712+10:00",
+  "title": "Design System: CivicWorks",
+  "extensions": {
+    "colorMeta": {
+      "civic-blue": {
+        "role": "primary",
+        "displayName": "Deep Civic Blue",
+        "canonical": "#123d56",
+        "tonalRamp": [
+          "oklch(15% 0.064 238.4)",
+          "oklch(27% 0.064 238.4)",
+          "oklch(39% 0.064 238.4)",
+          "oklch(51% 0.064 238.4)",
+          "oklch(63% 0.064 238.4)",
+          "oklch(75% 0.064 238.4)",
+          "oklch(87% 0.064 238.4)",
+          "oklch(95% 0.064 238.4)"
+        ]
+      },
+      "civic-blue-deep": {
+        "role": "primary",
+        "displayName": "Checkpoint Blue",
+        "canonical": "#0b2a3c",
+        "tonalRamp": [
+          "oklch(15% 0.049 238.1)",
+          "oklch(27% 0.049 238.1)",
+          "oklch(39% 0.049 238.1)",
+          "oklch(51% 0.049 238.1)",
+          "oklch(63% 0.049 238.1)",
+          "oklch(75% 0.049 238.1)",
+          "oklch(87% 0.049 238.1)",
+          "oklch(95% 0.049 238.1)"
+        ]
+      },
+      "works-yellow": {
+        "role": "secondary",
+        "displayName": "Works Yellow",
+        "canonical": "#f4c542",
+        "tonalRamp": [
+          "oklch(15% 0.151 88.3)",
+          "oklch(27% 0.151 88.3)",
+          "oklch(39% 0.151 88.3)",
+          "oklch(51% 0.151 88.3)",
+          "oklch(63% 0.151 88.3)",
+          "oklch(75% 0.151 88.3)",
+          "oklch(87% 0.151 88.3)",
+          "oklch(95% 0.151 88.3)"
+        ]
+      },
+      "works-yellow-light": {
+        "role": "secondary",
+        "displayName": "Pale Works Yellow",
+        "canonical": "#fff2b6",
+        "tonalRamp": [
+          "oklch(15% 0.078 97.3)",
+          "oklch(27% 0.078 97.3)",
+          "oklch(39% 0.078 97.3)",
+          "oklch(51% 0.078 97.3)",
+          "oklch(63% 0.078 97.3)",
+          "oklch(75% 0.078 97.3)",
+          "oklch(87% 0.078 97.3)",
+          "oklch(95% 0.078 97.3)"
+        ]
+      },
+      "eucalyptus": {
+        "role": "tertiary",
+        "displayName": "Eucalyptus Green",
+        "canonical": "#2f755f",
+        "tonalRamp": [
+          "oklch(15% 0.079 169.5)",
+          "oklch(27% 0.079 169.5)",
+          "oklch(39% 0.079 169.5)",
+          "oklch(51% 0.079 169.5)",
+          "oklch(63% 0.079 169.5)",
+          "oklch(75% 0.079 169.5)",
+          "oklch(87% 0.079 169.5)",
+          "oklch(95% 0.079 169.5)"
+        ]
+      },
+      "routebook-paper": {
+        "role": "neutral",
+        "displayName": "Routebook Paper",
+        "canonical": "#f5f2e9",
+        "tonalRamp": [
+          "oklch(15% 0.012 91.5)",
+          "oklch(27% 0.012 91.5)",
+          "oklch(39% 0.012 91.5)",
+          "oklch(51% 0.012 91.5)",
+          "oklch(63% 0.012 91.5)",
+          "oklch(75% 0.012 91.5)",
+          "oklch(87% 0.012 91.5)",
+          "oklch(95% 0.012 91.5)"
+        ]
+      },
+      "routebook-paper-deep": {
+        "role": "neutral",
+        "displayName": "Routebook Paper Deep",
+        "canonical": "#e9e5d9",
+        "tonalRamp": [
+          "oklch(15% 0.017 91.6)",
+          "oklch(27% 0.017 91.6)",
+          "oklch(39% 0.017 91.6)",
+          "oklch(51% 0.017 91.6)",
+          "oklch(63% 0.017 91.6)",
+          "oklch(75% 0.017 91.6)",
+          "oklch(87% 0.017 91.6)",
+          "oklch(95% 0.017 91.6)"
+        ]
+      },
+      "enamel-white": {
+        "role": "neutral",
+        "displayName": "Enamel White",
+        "canonical": "#fffefa",
+        "tonalRamp": [
+          "oklch(15% 0.005 95.1)",
+          "oklch(27% 0.005 95.1)",
+          "oklch(39% 0.005 95.1)",
+          "oklch(51% 0.005 95.1)",
+          "oklch(63% 0.005 95.1)",
+          "oklch(75% 0.005 95.1)",
+          "oklch(87% 0.005 95.1)",
+          "oklch(95% 0.005 95.1)"
+        ]
+      },
+      "charcoal": {
+        "role": "neutral",
+        "displayName": "Charcoal",
+        "canonical": "#17242a",
+        "tonalRamp": [
+          "oklch(15% 0.021 228.3)",
+          "oklch(27% 0.021 228.3)",
+          "oklch(39% 0.021 228.3)",
+          "oklch(51% 0.021 228.3)",
+          "oklch(63% 0.021 228.3)",
+          "oklch(75% 0.021 228.3)",
+          "oklch(87% 0.021 228.3)",
+          "oklch(95% 0.021 228.3)"
+        ]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#526169",
+        "tonalRamp": [
+          "oklch(15% 0.022 231.1)",
+          "oklch(27% 0.022 231.1)",
+          "oklch(39% 0.022 231.1)",
+          "oklch(51% 0.022 231.1)",
+          "oklch(63% 0.022 231.1)",
+          "oklch(75% 0.022 231.1)",
+          "oklch(87% 0.022 231.1)",
+          "oklch(95% 0.022 231.1)"
+        ]
+      },
+      "boundary": {
+        "role": "neutral",
+        "displayName": "Boundary Grey",
+        "canonical": "#c9c7bb",
+        "tonalRamp": [
+          "oklch(15% 0.017 99.0)",
+          "oklch(27% 0.017 99.0)",
+          "oklch(39% 0.017 99.0)",
+          "oklch(51% 0.017 99.0)",
+          "oklch(63% 0.017 99.0)",
+          "oklch(75% 0.017 99.0)",
+          "oklch(87% 0.017 99.0)",
+          "oklch(95% 0.017 99.0)"
+        ]
+      },
+      "boundary-dark": {
+        "role": "neutral",
+        "displayName": "Boundary Grey Dark",
+        "canonical": "#859198",
+        "tonalRamp": [
+          "oklch(15% 0.017 233.2)",
+          "oklch(27% 0.017 233.2)",
+          "oklch(39% 0.017 233.2)",
+          "oklch(51% 0.017 233.2)",
+          "oklch(63% 0.017 233.2)",
+          "oklch(75% 0.017 233.2)",
+          "oklch(87% 0.017 233.2)",
+          "oklch(95% 0.017 233.2)"
+        ]
+      },
+      "conflict": {
+        "role": "tertiary",
+        "displayName": "Conflict Red",
+        "canonical": "#b63e32",
+        "tonalRamp": [
+          "oklch(15% 0.158 29.1)",
+          "oklch(27% 0.158 29.1)",
+          "oklch(39% 0.158 29.1)",
+          "oklch(51% 0.158 29.1)",
+          "oklch(63% 0.158 29.1)",
+          "oklch(75% 0.158 29.1)",
+          "oklch(87% 0.158 29.1)",
+          "oklch(95% 0.158 29.1)"
+        ]
+      },
+      "conflict-light": {
+        "role": "tertiary",
+        "displayName": "Conflict Wash",
+        "canonical": "#f7ddd7",
+        "tonalRamp": [
+          "oklch(15% 0.030 33.1)",
+          "oklch(27% 0.030 33.1)",
+          "oklch(39% 0.030 33.1)",
+          "oklch(51% 0.030 33.1)",
+          "oklch(63% 0.030 33.1)",
+          "oklch(75% 0.030 33.1)",
+          "oklch(87% 0.030 33.1)",
+          "oklch(95% 0.030 33.1)"
+        ]
+      },
+      "focus-blue": {
+        "role": "primary",
+        "displayName": "Focus Blue",
+        "canonical": "#145ed6",
+        "tonalRamp": [
+          "oklch(15% 0.197 260.4)",
+          "oklch(27% 0.197 260.4)",
+          "oklch(39% 0.197 260.4)",
+          "oklch(51% 0.197 260.4)",
+          "oklch(63% 0.197 260.4)",
+          "oklch(75% 0.197 260.4)",
+          "oklch(87% 0.197 260.4)",
+          "oklch(95% 0.197 260.4)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Route Display",
+        "purpose": "Route-change thesis and first-viewport decision framing."
+      },
+      "title": {
+        "displayName": "Destination Title",
+        "purpose": "Evidence records, option briefs, and section destinations."
+      },
+      "body": {
+        "displayName": "Operational Body",
+        "purpose": "Evidence explanations and bounded decision-support context."
+      },
+      "label": {
+        "displayName": "Administrative Label",
+        "purpose": "References, statuses, budgets, and sign legends."
+      }
+    },
+    "shadows": [
+      {
+        "name": "route-field-lift",
+        "value": "0 18px 34px rgba(42, 51, 55, 0.1)",
+        "purpose": "Lifts the main plan surface above routebook paper."
+      },
+      {
+        "name": "record-sheet-lift",
+        "value": "0 14px 28px rgba(42, 51, 55, 0.08)",
+        "purpose": "Lifts evidence and options sheets."
+      },
+      {
+        "name": "station-sign-lift",
+        "value": "4px 6px 14px rgba(23, 36, 42, 0.13)",
+        "purpose": "Makes route nodes read as enamel signs above the route."
+      },
+      {
+        "name": "station-sign-hover",
+        "value": "5px 8px 18px rgba(23, 36, 42, 0.18)",
+        "purpose": "Adds tactile lift when a route station is hovered."
+      }
+    ],
+    "motion": [
+      {
+        "name": "route-revision-draw",
+        "value": "1.1s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Draws the materially revised route once; disabled for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "rail-tighten",
+        "value": "1260px"
+      },
+      {
+        "name": "checkpoint-dock-below",
+        "value": "1040px"
+      },
+      {
+        "name": "vertical-route",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Officer Action",
+      "kind": "button",
+      "refersTo": "primary-action",
+      "description": "The single consequential action inside the officer checkpoint.",
+      "html": "<button class=\"ds-primary-action\">Approve revised route<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14\"></path><path d=\"M13 18l6-6\"></path><path d=\"M13 6l6 6\"></path></svg></button>",
+      "css": ".ds-primary-action { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; border: 2px solid var(--yellow); border-radius: 2px; background: var(--yellow); color: #25261e; font-family: 'Atkinson Hyperlegible Next Variable', Arial, sans-serif; font-weight: 800; cursor: pointer; } .ds-primary-action:hover { background: #ffdc56; } .ds-primary-action:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; } .ds-primary-action svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }"
+    },
+    {
+      "name": "Secondary Pause Action",
+      "kind": "button",
+      "refersTo": "secondary-action",
+      "description": "A quiet alternative that keeps an investigation paused.",
+      "html": "<div class=\"ds-checkpoint-surface\"><button class=\"ds-secondary-action\">Keep paused</button></div>",
+      "css": ".ds-checkpoint-surface { display: inline-block; padding: 12px; background: var(--navy-deep); } .ds-secondary-action { min-height: 46px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 2px; background: transparent; color: var(--white); font-family: 'Atkinson Hyperlegible Next Variable', Arial, sans-serif; font-weight: 800; cursor: pointer; } .ds-secondary-action:hover { background: rgba(255, 255, 255, 0.08); } .ds-secondary-action:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Plan Display Switch",
+      "kind": "nav",
+      "description": "Switches between the current route and the comparison with its superseded branch.",
+      "html": "<div class=\"ds-plan-switch\" aria-label=\"Plan display\"><button class=\"ds-plan-switch-active\" aria-pressed=\"true\">Compare plans</button><button aria-pressed=\"false\">Current route</button></div>",
+      "css": ".ds-plan-switch { display: inline-flex; padding: 3px; border: 1px solid var(--line-dark); background: var(--white); } .ds-plan-switch button { min-height: 36px; padding: 0 12px; border: 0; background: transparent; color: var(--ink); font-family: 'Atkinson Hyperlegible Next Variable', Arial, sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer; } .ds-plan-switch button.ds-plan-switch-active { background: var(--navy); color: var(--white); } .ds-plan-switch button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }"
+    },
+    {
+      "name": "Conflict Route Station",
+      "kind": "custom",
+      "refersTo": "route-station",
+      "description": "A selectable enamel station sign that exposes a material evidence conflict.",
+      "html": "<button class=\"ds-route-station ds-route-station-selected\"><span class=\"ds-station-dot\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 9v4\"></path><path d=\"M12 17h.01\"></path><path d=\"M10.3 3.7 2.2 18a2 2 0 0 0 1.8 3h16a2 2 0 0 0 1.8-3L13.7 3.7a2 2 0 0 0-3.4 0z\"></path></svg></span><strong>Sandstone conflict</strong><small>OBS-07 changed plan</small></button>",
+      "css": ".ds-route-station { width: 128px; min-height: 66px; display: grid; grid-template-columns: 25px 1fr; grid-template-rows: auto auto; column-gap: 7px; align-content: center; padding: 8px; border: 1px solid var(--danger); border-radius: 2px; background: var(--danger-light); color: var(--ink); box-shadow: 4px 6px 14px rgba(23, 36, 42, 0.13); text-align: left; cursor: pointer; } .ds-route-station:hover { box-shadow: 5px 8px 18px rgba(23, 36, 42, 0.18); } .ds-route-station:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; } .ds-route-station-selected { outline: 3px solid var(--yellow); outline-offset: 2px; } .ds-station-dot { grid-row: 1 / 3; align-self: center; width: 23px; height: 23px; display: grid; place-items: center; border: 4px solid var(--danger); border-radius: 50%; background: var(--white); color: var(--danger); } .ds-station-dot svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-route-station strong { align-self: end; font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; line-height: 1; } .ds-route-station small { align-self: start; margin-top: 4px; color: var(--ink-soft); font-size: 0.64rem; line-height: 1.2; }"
+    },
+    {
+      "name": "Evidence Conflict Status",
+      "kind": "chip",
+      "description": "A compact textual status that never relies on the adjacent evidence pip alone.",
+      "html": "<span class=\"ds-evidence-status\">Conflict</span>",
+      "css": ".ds-evidence-status { display: inline-block; padding: 4px 7px; border: 1px solid currentColor; border-radius: 0; color: var(--danger); font-family: 'Atkinson Hyperlegible Next Variable', Arial, sans-serif; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Enamel Evidence Panel",
+      "kind": "card",
+      "refersTo": "enamel-panel",
+      "description": "A bounded record sheet for evidence details and source lineage.",
+      "html": "<section class=\"ds-enamel-panel\"><div class=\"ds-enamel-heading\"><h3>Possible sandstone drain observed</h3><span>Conflict</span></div><p>A material observation pauses invasive assumptions until the feature is verified.</p><dl><div><dt>Reference</dt><dd>OBS-07</dd></div><div><dt>Source</dt><dd>Synthetic site observation</dd></div></dl></section>",
+      "css": ".ds-enamel-panel { max-width: 560px; padding: 22px 24px; border: 1px solid var(--line-dark); border-radius: 3px; background: var(--white); color: var(--ink); box-shadow: 0 14px 28px rgba(42, 51, 55, 0.08); font-family: 'Atkinson Hyperlegible Next Variable', Arial, sans-serif; } .ds-enamel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; } .ds-enamel-heading h3 { margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 1.45rem; line-height: 1.05; } .ds-enamel-heading span { padding: 4px 7px; border: 1px solid currentColor; color: var(--danger); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; } .ds-enamel-panel p { max-width: 68ch; margin: 13px 0 18px; color: var(--ink-soft); font-size: 0.87rem; line-height: 1.55; } .ds-enamel-panel dl { display: grid; grid-template-columns: 0.8fr 1.25fr; gap: 12px; margin: 0; } .ds-enamel-panel dt { margin-bottom: 4px; color: var(--ink-soft); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; } .ds-enamel-panel dd { margin: 0; font-size: 0.76rem; font-weight: 700; }"
+    },
+    {
+      "name": "Route Revision Label",
+      "kind": "custom",
+      "description": "A physical route-tape annotation fixed beside the changed junction.",
+      "html": "<div class=\"ds-route-revision\"><span>ROUTE REVISION</span><strong>5 checks added</strong><small>Triggered by OBS-07</small></div>",
+      "css": ".ds-route-revision { width: 150px; padding: 9px 10px; background: var(--navy); color: var(--white); box-shadow: 5px 7px 0 var(--yellow); } .ds-route-revision span, .ds-route-revision strong, .ds-route-revision small { display: block; } .ds-route-revision span { color: var(--yellow-light); font-family: 'Atkinson Hyperlegible Next Variable', Arial, sans-serif; font-size: 0.61rem; font-weight: 800; letter-spacing: 0.1em; } .ds-route-revision strong { margin-top: 2px; font-family: 'Barlow Condensed', sans-serif; font-size: 1.2rem; } .ds-route-revision small { margin-top: 2px; color: #d3e0e5; font-family: 'Atkinson Hyperlegible Next Variable', Arial, sans-serif; font-size: 0.65rem; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Civic Routebook",
+    "overview": "Civic Routebook turns an evidence-bound council investigation into a piece of physical wayfinding. Deep civic blues and off-white enamel surfaces carry authority; works yellow traces change, eucalyptus marks approval, and conflict red interrupts the route when claims disagree. The result is operational and information-dense without reading as a generic AI-monitoring dashboard.\n\nThe system borrows the grammar of NSW public-works notices and transit maps: condensed destination type, bounded sign panels, route tape, station markers, striped works markings, and explicit junctions. It favors visible causality over decorative data display. Human checkpoints remain structurally prominent, while evidence lineage and bounded execution use compact, highly legible supporting type.",
+    "keyCharacteristics": [
+      "Investigation state is expressed as a continuous route with visible branches, stops, and checkpoints.",
+      "Enamel-white panels and routebook-paper fields are bounded by fine civic-grey rules.",
+      "Condensed wayfinding headlines pair with hyperlegible operational copy.",
+      "Rectilinear signs, circular stations, route tape, and works hatching provide the signature geometry.",
+      "Human approval and evidence conflicts are stated in words and symbols as well as color."
+    ],
+    "rules": [
+      {
+        "name": "The Route Carries State Rule",
+        "body": "Civic blue is stable plan infrastructure; works yellow is the current or revised path and primary action; eucalyptus is reserved for verified or approved states; conflict red is paired with an alert icon, copy, or border so status never depends on color alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paper and Enamel Rule",
+        "body": "Large work areas stay routebook paper; interactive records and plan surfaces are enamel white with visible civic-grey boundaries.",
+        "section": "colors"
+      },
+      {
+        "name": "The Wayfinding Pair Rule",
+        "body": "Use Barlow Condensed for destinations, station names, case numerals, and checkpoint headings; use Atkinson Hyperlegible Next for explanations, evidence, controls, and metadata.",
+        "section": "typography"
+      },
+      {
+        "name": "The Compressed, Not Cramped Rule",
+        "body": "Condensed type may be tight and loud, but operational body copy keeps generous line height and a bounded measure.",
+        "section": "typography"
+      },
+      {
+        "name": "The Route Owns the Centre Rule",
+        "body": "The plan route and its conflict junction receive the largest fluid region; supporting case facts and officer authority remain docked at its edges until the viewport requires stacking.",
+        "section": "layout"
+      },
+      {
+        "name": "The Bounded Before Lifted Rule",
+        "body": "Establish hierarchy with tone and a visible border first; use shadow only when a surface must read as a sign or sheet above the routebook.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Signs and Stations Rule",
+        "body": "Use nearly square rectangles for information and action; use circles only for people, stops, checkpoints, and compact state markers.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do make changed plans visible as route geometry, with the causal evidence fixed at the junction.",
+      "Do use works yellow for the active route, checkpoint emphasis, progress, and primary officer action.",
+      "Do pair every conflict, queued, verified, or approved color with words, geometry, or an icon.",
+      "Do preserve condensed wayfinding headings alongside hyperlegible operational copy.",
+      "Do convert the route to a vertical stop sequence at narrow widths and honor reduced-motion preference."
+    ],
+    "donts": [
+      "Don't flatten the investigation into generic KPI cards, agent chat, or an AI-monitoring dashboard.",
+      "Don't round sign panels or controls beyond the established 3px language; reserve circles for stations, people, checkpoints, and state pips.",
+      "Don't use works yellow as body text or as a broad background field; its scarcity makes route revision and action legible.",
+      "Don't hide human ownership, evidence lineage, or the difference between a current and superseded plan.",
+      "Don't add ambient decorative motion; movement belongs to meaningful route revision and must have a reduced-motion fallback."
+    ]
+  }
+}
