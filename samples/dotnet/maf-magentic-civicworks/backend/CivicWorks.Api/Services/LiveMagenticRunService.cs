@@ -58,6 +58,10 @@ public sealed class LiveMagenticRunService(
 
         Use exact participant names from the team. Keep the initial plan inside the INITIAL-PLAN BOUNDARY in the task.
 
+        Follow the framework's format for the current operation: create or revise a concise investigation plan when asked for a task ledger, and return the requested progress ledger when asked to select the next specialist. The FINAL OUTPUT CONTRACT applies only to the final answer after the evidence challenge is complete, never to an initial plan, replanning response, or progress ledger.
+
+        Once the complete evidence packet and the tool-backed EV-REPORT-01 exist, specialist work is finished. Set is_request_satisfied=true in the next progress ledger to let the framework invoke final-answer synthesis. Do not keep delegating readiness confirmations or final-assembly handoffs, and do not wait for the final JSON to exist before marking the investigation ready for synthesis.
+
         A PLAN_INVALIDATED signal is valid only when the manager-visible conversation contains tool-backed specialist findings for both AR-DN-44 and OBS-07, and the OBS-07 response says the signal came from get_site_observation. If either reference is absent, do not replan and do not infer the conflict: select the missing specialist and require its read-only tool. Once both references exist and the current plan is still the original route, set the next progress ledger to is_in_loop=true and is_progress_being_made=false so the framework resets it.
 
         The rebuilt plan must add heritage-register verification, a non-invasive site survey, an excavation-avoiding option, cost and disruption recalculation, and an Evidence Verifier challenge. Once those revised steps are present, treat the earlier signal as addressed: set progress according to the new work and never trigger another reset from historical conflict text. Never declare the request satisfied before EV-REPORT-01 exists. The final answer must obey the FINAL OUTPUT CONTRACT exactly, with evidence references on every claim.

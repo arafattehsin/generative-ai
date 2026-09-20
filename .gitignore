@@ -123,3 +123,29 @@
 # .NET - maf-procurement-harness
 /samples/dotnet/maf-procurement-harness/backend/**/bin/
 /samples/dotnet/maf-procurement-harness/backend/**/obj/
+
+
+################################################################################
+# Global rules - apply to every sample
+################################################################################
+
+# Node / frontend
+**/node_modules/
+**/.next/
+**/.turbo/
+**/dist/
+**/*.tsbuildinfo
+**/.env.local
+**/.env.*.local
+
+# .NET
+**/bin/
+**/obj/
+**/.vs/
+
+# Python
+**/.venv/
+**/__pycache__/
+
+# Local tooling scratch
+.codex-tmp/

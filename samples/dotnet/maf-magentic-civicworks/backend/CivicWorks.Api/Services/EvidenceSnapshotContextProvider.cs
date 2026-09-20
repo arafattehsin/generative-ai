@@ -17,6 +17,12 @@ internal sealed class EvidenceSnapshotContextProvider(
             return ValueTask.FromResult<IEnumerable<ChatMessage>>([]);
         }
 
+        return ValueTask.FromResult<IEnumerable<ChatMessage>>(
+            [new ChatMessage(ChatRole.User, BuildSnapshot(state))]);
+    }
+
+    internal static string BuildSnapshot(CivicWorksRunState state)
+    {
         StringBuilder snapshot = new();
         lock (state.SyncRoot)
         {
@@ -39,6 +45,8 @@ internal sealed class EvidenceSnapshotContextProvider(
 
             bool hasAsset = state.Evidence.ContainsKey("asset");
             bool hasObservation = state.Evidence.ContainsKey("sandstone");
+            string[] missingCommunity = new[] { "complaints", "access" }
+                .Where(id => !state.Evidence.ContainsKey(id)).ToArray();
             bool revised = state.PlanVersion > 1;
 
             snapshot.AppendLine("Manager guard:");
@@ -48,8 +56,16 @@ internal sealed class EvidenceSnapshotContextProvider(
 
             if (revised)
             {
-                snapshot.AppendLine("- Do not repeat Community & Access or Civil Assets collection. Those facts survived the reset in this snapshot.");
-                snapshot.AppendLine("- Do not trigger another reset from AR-DN-44/OBS-07. Continue with missing revised-plan evidence in this order: Place & Constraints, Cost & Delivery, Evidence Verifier.");
+                snapshot.AppendLine("- Only the evidence listed above survived the reset. Do not repeat tools for records already present; never assume an unlisted record was collected.");
+                if (missingCommunity.Length > 0)
+                {
+                    snapshot.AppendLine($"- Missing baseline evidence: {string.Join(", ", missingCommunity)}. Select CommunityAccessAnalyst to obtain these missing records before the final EvidenceVerifier challenge.");
+                }
+                if (!hasAsset)
+                {
+                    snapshot.AppendLine("- Missing baseline evidence: asset. Select CivilAssetsAnalyst to obtain AR-DN-44 before the final EvidenceVerifier challenge.");
+                }
+                snapshot.AppendLine("- Do not trigger another reset from historical AR-DN-44/OBS-07 conflict text. Complete any missing baseline evidence, then missing revised-plan checks: Place & Constraints, Cost & Delivery, Evidence Verifier.");
                 snapshot.AppendLine("- Mark is_progress_being_made=true while those missing revised-plan checks are being completed.");
             }
             else if (hasAsset && hasObservation)
@@ -58,11 +74,34 @@ internal sealed class EvidenceSnapshotContextProvider(
             }
             else
             {
-                snapshot.AppendLine("- The evidence threshold for replanning is not satisfied. Select the specialist needed to collect the missing reference.");
+                snapshot.AppendLine("- The evidence threshold for replanning is not satisfied. Follow the initial collection order; the conflict check does not replace the baseline service-request and access investigation.");
+                if (missingCommunity.Length > 0)
+                {
+                    snapshot.AppendLine($"- Missing baseline evidence: {string.Join(", ", missingCommunity)}. Select CommunityAccessAnalyst before collecting civil assets and site observations.");
+                }
+                else
+                {
+                    snapshot.AppendLine("- Baseline service-request and access evidence is present. Select the specialist needed to collect the missing asset or site-observation reference.");
+                }
+            }
+
+            string[] missingForVerification = new[] { "complaints", "access", "asset", "sandstone", "constraints", "heritage", "survey", "cost" }
+                .Where(id => !state.Evidence.ContainsKey(id)).ToArray();
+            if (missingForVerification.Length > 0)
+            {
+                snapshot.AppendLine($"- EvidenceVerifier completion prerequisites still missing: {string.Join(", ", missingForVerification)}. Obtain them before asking the verifier to complete the packet. Revised-plan checks still require the revised plan's approval.");
+            }
+            else if (state.Evidence.ContainsKey("verification"))
+            {
+                snapshot.AppendLine("- All required specialist work is complete, including the tool-backed EV-REPORT-01. No further verifier readiness confirmation or assembly handoff is needed.");
+                snapshot.AppendLine("- In the next progress ledger, mark is_request_satisfied=true. This tells the Magentic framework to run final-answer synthesis; it does not claim a final JSON has already been written. During that synthesis, produce the evidence-cited FINAL OUTPUT CONTRACT and retain the unresolved matters.");
+            }
+            else
+            {
+                snapshot.AppendLine("- All verification prerequisites are present. Require EvidenceVerifier to run its tool; EV-REPORT-01 is not yet in the collected evidence.");
             }
         }
 
-        return ValueTask.FromResult<IEnumerable<ChatMessage>>(
-            [new ChatMessage(ChatRole.User, snapshot.ToString())]);
+        return snapshot.ToString();
     }
 }
